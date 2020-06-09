@@ -88,7 +88,7 @@ def main():
     print('log-likelihood:', loglikelihood/sum([len(segLine) for segLine in segData]))
 
     # dump
-    with open(os.path.join(RESULTS_DIR, dirName, 'set.txt'), 'w') as f:
+    with open(os.path.join(RESULTS_DIR, dirName, 'seg.txt'), 'w') as f:
         for segLine in segData:
             f.write(' '.join(segLine)+'\n')
 

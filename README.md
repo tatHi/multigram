@@ -28,6 +28,14 @@ optional arguments:
                         method to train multigram language modelt
 ```
 
+
+For example, run the following command:
+```
+$ python train.py -d [path to training corpus]
+```
+then, you obtain the learned language model (lm.pickle) and estimated word segmentation (seg.txt) in `results/[timestamp]/`.
+
+
 ## Estimate Probabilities for BERT
 ```
 $ python trainBERTvocab.py -h
