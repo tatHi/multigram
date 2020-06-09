@@ -57,31 +57,38 @@ def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
     print('>>> START VITERVI %d EPOCH TRAINING'%(maxIter))
     batchSize = 256
     shuffle = True
+    idTables = []
     for it in range(maxIter):
         print('iter: %d/%d'%(it+1, maxIter))
         indices = np.random.permutation(len(data)) if shuffle else np.arange(len(data))
 
         iterTheta = np.zeros(mlm.theta.shape)
+        
+        if it==0:
+            unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
+            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
 
         for b in range(0, len(data), batchSize):
             if len(data)-b < batchSize*0.9:
                 # if the number of contents is less than 90% of batchSize, break 
                 break
             
+
             lines = [data[indices[b]] for b in range(b, b+batchSize) if b<len(data)]
+            tables = [idTables[indices[b]] for b in range(b, b+batchSize) if b<len(data)]
 
             # viterbi
-            tmpSegs = [w
-                       for line in lines
-                       for w in dp.viterbiSegmentation(line,
-                                                       mlm.makeLogProbTable(line))]
+            tmpSegs = [i
+                       for line, idTable in zip(data, idTables)
+                       for i in dp.viterbiIdSegmentation(idTable,
+                                                         mlm.makeLogProbTable(line, idTable=idTable))]
 
             # re-estimate
             batchTheta = np.zeros(mlm.theta.shape)
             tmpVocabSize = len(tmpSegs)
             tmpUnigramCount = Counter(tmpSegs)
             for k,v in tmpUnigramCount.items():
-                batchTheta[mlm.word2id[k]] = v
+                batchTheta[k] = v
             batchTheta = batchTheta / tmpVocabSize
 
             iterTheta += batchTheta
@@ -106,9 +113,14 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
 
     step = 0
 
+    idTables = []
     for it in range(maxIter):
         print('iter: %d/%d'%(it+1, maxIter))
         indices = np.random.permutation(len(data)) if shuffle else np.arange(len(data))
+
+        if it==0:
+            unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
+            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
 
         for b in range(0, len(data), batchSize):
             if len(data)-b < batchSize*0.9:
@@ -116,12 +128,13 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
                 break
             
             lines = [data[indices[b]] for b in range(b, b+batchSize) if b<len(data)]
+            tables = [idTables[indices[b]] for b in range(b, b+batchSize) if b<len(data)]
 
             # viterbi
-            tmpSegs = [w
-                       for line in lines
-                       for w in dp.viterbiSegmentation(line,
-                                                       mlm.makeLogProbTable(line))]
+            tmpSegs = [i
+                       for line, idTable in zip(data, idTables)
+                       for i in dp.viterbiIdSegmentation(idTable,
+                                                         mlm.makeLogProbTable(line, idTable=idTable))]
 
             # re-estimate
             eta = (step+2)**(-decay)
@@ -131,7 +144,7 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
             tmpVocabSize = len(tmpSegs)
             tmpUnigramCount = Counter(tmpSegs)
             for k,v in tmpUnigramCount.items():
-                currentTheta[mlm.word2id[k]] = v
+                currentTheta[k] = v
             currentTheta = currentTheta / tmpVocabSize
 
             # update
@@ -146,20 +159,23 @@ def viterbiTrain(mlm, data, maxIter=10, proning=True):
     print('>>> START VITERVI %d EPOCH TRAINING'%(maxIter))
 
     prevLH = 0
+    idTables = []
     for it in range(maxIter):
         print('iter: %d/%d'%(it+1, maxIter))
-        if it==10:
-            # vocabulary pruning
-            pass
+
+        if it==0:
+            unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
+            unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
+            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
 
         # viterbi
-        tmpSegs = [w
-                   for line in data
-                   for w in dp.viterbiSegmentation(line,
-                                                   mlm.makeLogProbTable(line))]
+        tmpSegs = [i
+                   for line, idTable in zip(data, idTables)
+                   for i in dp.viterbiIdSegmentation(idTable,
+                                                     mlm.makeLogProbTable(line, idTable=idTable))]
 
         # calc loglikelihood
-        loglikelihood = np.log([mlm.theta[mlm.word2id[w]] for w in tmpSegs]).sum()
+        loglikelihood = np.log([mlm.theta[i] for i in tmpSegs]).sum()
         print('current log-likelihood:', loglikelihood/len(tmpSegs))
 
         # re-estimate
@@ -167,7 +183,7 @@ def viterbiTrain(mlm, data, maxIter=10, proning=True):
         tmpUnigramCount = Counter(tmpSegs)
         currentTheta = np.zeros(mlm.theta.shape)
         for k,v in tmpUnigramCount.items():
-            currentTheta[mlm.word2id[k]] = v
+            currentTheta[k] = v
         currentTheta = currentTheta / tmpVocabSize
 
         # re-normalize
@@ -176,7 +192,7 @@ def viterbiTrain(mlm, data, maxIter=10, proning=True):
         # proning
         if proning: mlm.proneVocab()
 
-        print(tmpSegs[100:200])        
+        print(' '.join([mlm.id2word[i] for i in tmpSegs[:100]]))        
 
     return mlm
 
