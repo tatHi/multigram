@@ -4,8 +4,11 @@ from collections import Counter
 import argparse
 import numpy as np
 from tqdm import tqdm
+import yaml
 import util
 import os
+
+RESULTS_DIR = '../results'
 
 def EMTrain(mlm, data, maxIter=10, proning=True):
     idTables = []
@@ -134,8 +137,8 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
             # update
             mlm.theta = (1-eta)*mlm.theta + eta*currentTheta
 
-            # proning
-            if proning: mlm.proneVocab()
+        # proning
+        if proning: mlm.proneVocab()
         
     return mlm
 
@@ -179,48 +182,99 @@ def viterbiTrain(mlm, data, maxIter=10, proning=True):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--data')
-    parser.add_argument('-td', '--testData', default=None)
-    parser.add_argument('-me', '--maxEpoch', default=10, type=int)
-    parser.add_argument('-ml', '--maxLength', default=5, type=int)
-    parser.add_argument('-mf', '--minFreq', default=50, type=int)
+    parser.add_argument('-d',
+                        '--data',
+                        type=str,
+                        required=True,
+                        help='text data for training')
+    parser.add_argument('-td', 
+                        '--testData', 
+                        default=None,
+                        type=str,
+                        help='text data for checking log-prob as test. if not specified, use training set')
+    parser.add_argument('-me', 
+                        '--maxEpoch', 
+                        default=10, 
+                        type=int,
+                        help='max training epoch')
+    parser.add_argument('-ml', 
+                        '--maxLength', 
+                        default=5, 
+                        type=int,
+                        help='maximum length of word')
+    parser.add_argument('-mf', 
+                        '--minFreq', 
+                        default=50, 
+                        type=int,
+                        help='minimum frequency of word')
+    parser.add_argument('-os',
+                        '--outputSuffix',
+                        default='',
+                        type=str,
+                        help='output is dumped as timestamp_suffix.pickle if suffix is given otherwise timestamp.pickle')
+    parser.add_argument('-tm',
+                        '--trainMode',
+                        default='EM',
+                        choices=['viterbi',
+                                 'viterbiStepWise',
+                                 'viterbiBatch',
+                                 'EM'],
+                        help='method to train multigram language model')
     args = parser.parse_args()
+
+    # make results dir
+    if not os.path.isdir(RESULTS_DIR):
+        os.mkdir(RESULTS_DIR)
+        print('>>> CREATE RESULTS DIR')
 
     # set time stamp
     timeStamp = util.getTimeStamp()
-    dirName = '%s-%s'%(timeStamp,
-                       '-'.join(['%s=%s'%(str(k),
-                                          str(v).replace('/','#')) for k,v in vars(args).items()]))
-    os.mkdir('../results/'+dirName)
+    dirName = '_'.join([timeStamp, args.outputSuffix])
+    os.mkdir(os.path.join(RESULTS_DIR, dirName))
+    
+    # dump config
+    setattr(args, 'dirName', dirName)
+    open(os.path.join(RESULTS_DIR, dirName, 'config.yaml'), 'w').write(yaml.dump(vars(args)))
 
+    # load data
     data = [line.strip() for line in open(args.data)]
     print('>>> LOAD DATA')
+
+    # training
+    print('>>> START TRAINING')
     mlm = lm.MultigramLM(maxLength=args.maxLength, minFreq=args.minFreq, data=data)
 
-    mlm = EMTrain(mlm, data, args.maxEpoch)
-   
+    if args.trainMode=='EM':
+        mlm = EMTrain(mlm, data, args.maxEpoch)
+    elif args.trainMode=='viterbi':
+        mlm = viterbiTrain(mlm, data, args.maxEpoch)
+    elif args.trainMode=='viterbiStepWise':
+        mlm = viterbiTrainStepWise(mlm, data, args.maxEpoch)
+    elif args.trainMode=='viterbiBatch':
+        mlm = viterbiTrainBatch(mlm, data, args.maxEpoch)
+    
     mlm.reIndex() # discard tokens whose probability is 0.0
-
     print('>>> FINISH TRAINING')
 
     # inference
     if args.testData is not None:
+        print('>>> INFERENCE ON TEST DATA')
         data = [line.strip() for line in open(args.testData)]
+    else:
+        print('>>> INFERENCE ON TRAIN DATA')
         
     segData = [dp.viterbiSegmentation(line, mlm.makeLogProbTable(line)) for line in data]
     loglikelihood = np.log([mlm.theta[mlm.word2id[seg]] for segLine in segData for seg in segLine]).sum()
     print('log-likelihood:', loglikelihood/sum([len(segLine) for segLine in segData]))
 
     # dump
-    with open('../results/%s/seg.txt'%dirName, 'w') as f:
+    with open(os.path.join(RESULTS_DIR, dirName, 'set.txt'), 'w') as f:
         for segLine in segData:
             f.write(' '.join(segLine)+'\n')
 
-    path = '../results/%s/lm.pickle'%dirName
+    path = os.path.join(RESULTS_DIR, dirName, 'lm.pickle')
     mlm.save(path)
-    
     print('>>> DUMP RESULTS')
-
 
 if __name__ == '__main__':
     main()

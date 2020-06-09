@@ -5,6 +5,12 @@ from multiprocessing import Pool
 import multiprocessing as multi
 from time import time
 
+import numba as nb
+from numba import jit, f8, i8, u1, b1
+from numba.typed import List
+
+from heapq import merge
+
 minf = float('-inf')
 
 def calcAlpha(logProbTable):
@@ -58,14 +64,15 @@ def calcPosterior(alpha, sumBeta, sumGamma):
     ab = alpha + sumBeta[1:].reshape(sumBeta.shape[0]-1, 1)
     bg = sumBeta[0]+sumGamma[-1]
     return np.exp(ab-bg)
-    
-def ffbs(logProbTable):
+
+def forwardFiltering(logProbTable):
     T, L = logProbTable.shape
     alpha, sumAlpha = calcAlpha(logProbTable)
     dists = alpha - sumAlpha.reshape(T,1)
     dists = np.exp(dists)
-    #sampledLs = np.argmax(dists + np.random.gumbel(size=dists.shape), axis=1)
-
+    return dists, T, L
+    
+def backwardSampling(dists, T, L):
     ls = []
     p = T-1
 
@@ -85,25 +92,26 @@ def ffbs(logProbTable):
     ls = ls[::-1]
     return ls
 
+def ffbs(logProbTable, n=1):
+    dists, T, L = forwardFiltering(logProbTable)
+    lss = [backwardSampling(dists, T, L) for m in range(n)]
+    return lss
+
+@jit(nb.types.Tuple((f8[:], i8[:]))(f8[:,:]), nopython=True)
 def viterbiForward(logProbTable):
-    maxScores = []
-    #maxLs = []
-    def func(lpList):
-        maxScores.append(max(lpList))
-        return np.argmax(lpList, axis=0)
+    size = logProbTable.shape[0]
+    maxScores = np.zeros(size, dtype=np.float64)
+    maxLs = np.zeros(size, dtype=np.int64)
 
-    maxLs = [func([logProbTable[t,l] + (maxScores[t-l-1] if 0<=t-l-1 else 0)
-                   for l in range(logProbTable.shape[1])]) 
-             for t in range(logProbTable.shape[0])]
-    '''# forward
-    for t in range(logProbTable.shape[0]):
-        lpList = [logProbTable[t,l] + (maxScores[t-l-1] if 0<=t-l-1 else 0) 
-                  for l in range(logProbTable.shape[1])]
-        maxScores.append(max(lpList))
-        maxLs.append(np.argmax(lpList))'''
-
+    # forward
+    for t in range(size):
+        lpList = np.zeros(logProbTable.shape[1], dtype=np.float64)
+        for l in range(logProbTable.shape[1]):
+            lpList[l] = logProbTable[t,l] + (maxScores[t-l-1] if 0<=t-l-1 else 0)
+        maxScores[t] = max(lpList)
+        maxLs[t] = lpList.argmax()
     return maxScores, maxLs
-    
+
 def viterbi(logProbTable):
     maxScores, maxLs = viterbiForward(logProbTable)
     
@@ -119,20 +127,39 @@ def viterbi(logProbTable):
     return ls
 
 def tokenizeByLength(line, ls):
-    segs = []
+    segs = ['']*len(ls)
     pointer = 0
-    for l in ls:
-        segs.append(line[pointer:pointer+l])
+    for i,l in enumerate(ls):
+        #segs.append(line[pointer:pointer+l])
+        segs[i] = line[pointer:pointer+l]
         pointer += l
     return segs
 
 def tokenize(line, logProbTable, sampling):
-    ls = ffbs(logProbTable) if sampling else viterbi(logProbTable)
+    ls = ffbs(logProbTable, 1)[0] if sampling else viterbi(logProbTable)
     segs = tokenizeByLength(line, ls)
     return segs    
 
 def samplingSegmentation(line, logProbTable):
     return tokenize(line, logProbTable, sampling=True)
+
+def samplingIdSegmentation(idTable, logProbTable):
+    ls = ffbs(logProbTable, 1)[0]
+    c = 0
+    ids = []
+    for l in ls:
+        c += l
+        ids.append(idTable[c-1, l-1])
+    return ids
+
+def wrapSamplingIdSegmentation(xs):
+    return samplingIdSegmentation(*xs)
+
+def samplingIdSegmentationMultiProc(idTables, logProbTables):
+    p = Pool(multi.cpu_count())
+    segIds = p.map(wrapSamplingIdSegmentation, zip(idTables, logProbTables))
+    p.close()
+    return segIds
 
 def viterbiSegmentation(line, logProbTable):
     return tokenize(line, logProbTable, sampling=False)
@@ -147,18 +174,22 @@ def viterbiIdSegmentation(idTable, logProbTable):
     return ids
 
 def nbestSegmentation(line, logProbTable, n, mode='astar'):
+    #print(line)
+    #print(logProbTable)
+
     if mode=='astar':
         # forward
         maxScores, _ = viterbiForward(logProbTable)
         # backward
-        lss = nbestAstarBakckward(maxScores, logProbTable, n=n)
+        segs = [tokenizeByLength(line, ls) for ls, _ in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+        return segs
     elif mode=='point':
         # viterbi
         bestSeg = viterbi(logProbTable)
         # point estimation
         lss = nbestPointEstimation(bestSeg, logProbTable, n=n)
     else:
-        print('mode should be {aster, point}')
+        print('mode should be {astar, point}')
         exit()
 
     segs =  [tokenizeByLength(line, ls) for ls in lss]
@@ -179,7 +210,7 @@ def nbestIdSegmentation(idTable, logProbTable, n, mode='astar'):
     else:
         print('mode should be {aster, point}')
         exit()
-    
+
     def getIds(idTable, ls):
         c = 0
         ids = []
@@ -191,6 +222,79 @@ def nbestIdSegmentation(idTable, logProbTable, n, mode='astar'):
     idss = [getIds(idTable, ls) for ls in lss]
 
     return idss
+
+def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar'):
+    if mode!='astar':
+        print('mode %s is not implemented'%mode)
+        exit()
+    assert m<=n, 'mSamplingFromNbestSegmentation requires: m <= n'
+
+    # forward
+    maxScores, _ = viterbiForward(logProbTable)
+
+    # nbest backward
+    ress = [(tokenizeByLength(line, ls), logP) for ls, logP in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+    segs, logPs = zip(*ress)
+
+    size = len(segs)
+    if size <= m:
+        return segs
+
+    # m-sampling
+    dist = logPs - logsumexp(logPs)
+    dist = np.exp(dist)
+
+    if np.any(np.isnan(dist)):
+        # debug
+        print(dist)
+        print(logProbTable)
+        print(line)
+
+    segIdx = np.random.choice(size, m, p=dist, replace=False)
+    segs = [segs[si] for si in segIdx]
+
+    return segs
+
+def getIds(idTable, ls):
+    c = 0
+    ids = []
+    for l in ls:
+        c += l
+        ids.append(idTable[c-1, l-1])
+    return ids
+
+def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar'):
+    if mode!='astar':
+        print('mode %s is not implemented'%mode)
+        exit()
+    assert m<=n, 'mSamplingFromNbestSegmentation requires: m <= n'
+
+    # forward
+    maxScores, _ = viterbiForward(logProbTable)
+
+    # nbest backward
+    #ress = [(tokenizeByLength(line, ls), logP) for ls, logP in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+    ress = [(getIds(idTable, ls), logP) for ls, logP in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+    isegs, logPs = zip(*ress)
+
+    size = len(isegs)
+    if size <= m:
+        return isegs
+
+    # m-sampling
+    dist = logPs - logsumexp(logPs)
+    dist = np.exp(dist)
+
+    if np.any(np.isnan(dist)):
+        # debug
+        print(dist)
+        print(logProbTable)
+        print(line)
+
+    segIdx = np.random.choice(size, m, p=dist, replace=False)
+    isegs = [isegs[si] for si in segIdx]
+
+    return isegs
 
 def nbestPointEstimation(bestSegLen, logProbTable, n):
     maxLength = logProbTable.shape[1]
@@ -242,52 +346,88 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
 def nbestAstarBakckward(viterbiScores, logProbTable, n):
-    # add BOS
-    viterbiScores = [0] + viterbiScores
-
-    maxLength = logProbTable.shape[1]
-
-    nbests = []
-    endNode = ([len(viterbiScores)-1], 0, 0)
-    queue = [endNode] # requrires: (idx to trace, priority, score)
-
-    while queue:
-        # pop
-        node = queue.pop()
-        path = node[0]
-        prevIdx = path[-1]
-
-        # BOS
-        if prevIdx==0:
-            nbests.append(path[::-1])
-            if n<=len(nbests): break
-            continue
-
+    def calcNextScores(prevIdx, prevScore, path, maxLength):
         prevIdxM1 = prevIdx-1
-        prevScore = node[2]
-        
-        for i in range(max(prevIdx-maxLength, 0), prevIdx):
-            wordScore = logProbTable[prevIdxM1, prevIdxM1-i]
+        startIdx = max(prevIdx-maxLength, 0)
+
+        ids = range(startIdx,prevIdx)
+        wordScores = logProbTable[prevIdxM1, prevIdxM1-startIdx::-1].tolist()
+        for i, wordScore in zip(ids, wordScores):
             if wordScore==minf:
                 continue
             nextScore = prevScore + wordScore
             nextPriority = nextScore + viterbiScores[i]
-            nextNode = (path+[i], nextPriority, nextScore)
-            queue.append(nextNode)
+            yield nextPriority, nextScore, i
+
+    def _calcNextScores(prevIdx, prevScore, maxLength):
+        prevIdxM1 = prevIdx-1
+        startIdx = max(prevIdx-maxLength, 0)
+
+        ids = np.arange(startIdx, prevIdx, dtype=np.int64)
+        wordScores = logProbTable[prevIdxM1][prevIdxM1-ids]
+        nominf = np.where(wordScores!=minf)
+
+        ids = ids[nominf]
+        nextScores = prevScore + wordScores[nominf]
+        nextPriorities = nextScores + viterbiScores[ids]
+        
+        #return map(lambda x:x.tolist(), [nextPriorities, nextScores, ids])
+        return nextPriorities, nextScores, ids
+
+    def backtrace(ls):
+        size = len(ls)
+        return [ls[i]-ls[i-1] for i in range(1,size)]
+
+    # add BOS
+    viterbiScores = np.hstack([0, viterbiScores]).tolist()
+    maxLength = logProbTable.shape[1]
+
+    queue = [(0, 0, [len(viterbiScores)-1])] # initialized with endnode. requrires: (priority, score, idx to trace+)
+    m = 0
+
+    maxQsize = 0
+
+    while queue:
+        #lq = len(queue)
+        #print('\rsize of queue: %d'%lq, end='')
+        #maxQsize = max(maxQsize, lq)
+
+        # pop
+        _, prevScore, path = queue.pop()
+        prevIdx = path[-1]
+
+        # BOS
+        if prevIdx==0:
+            yield backtrace(path[::-1]), prevScore
+            m += 1
+            if n<=m: break
+            continue
+
+        #nextNodes = [(nextPriority, nextScore, path+[nextIdx]) 
+        #             for nextPriority, nextScore, nextIdx in calcNextScores(prevIdx, prevScore, path, maxLength)]
+        #queue += nextNodes
+        
+        queue += [(nextPriority, nextScore, path+[nextIdx]) 
+                  for nextPriority, nextScore, nextIdx in calcNextScores(prevIdx, prevScore, path, maxLength)]
 
         # sort queue
-        queue = sorted(queue, key=lambda x:x[1])
+        queue = sorted(queue)
 
+        # limit queue size
+        queue = queue[-512:]
+
+    '''
     # back trace
     lss = [[ls[i]-ls[i-1] for i in range(1,len(ls))] for ls in nbests]
     return lss
+    '''
 
 def wrapNbestSegmentation(xs):
     return nbestSegmentation(*xs)
 
 def nbestSegmentationMultiProc(lines, logProbTables, n, mode='astar'):
     size = len(lines)
-    if size <= 256:
+    if size <= 512:
         return [nbestSegmentation(line, logProbTable, n, mode)
                 for line, logProbTable in zip(lines, logProbTables)]
 
@@ -300,6 +440,26 @@ def nbestSegmentationMultiProc(lines, logProbTables, n, mode='astar'):
     
     return segs
 
+def mSamplingFromNbestSegmentationMultiProc(lines, logProbTables, m, n, mode='astar'):
+    size = len(lines)
+    if size <= 512:
+        return [mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar')
+                for line, logProbTable in zip(lines, logProbTables)]
+
+    ns = [n] * size
+    modes = [mode] * size
+    
+    p = Pool(multi.cpu_count())
+    segs = p.map(wrapNbestSegmentation, zip(lines, logProbTables, ns, modes))
+    p.close()
+    
+    return segs
+
+def nSampleWithFFBS(line, logProbTable, n):
+    lss = ffbs(logProbTable, n)
+    segs = [tokenizeByLength(line, ls) for ls in lss]
+    return segs
+
 def checkSpeed():
     from tqdm import tqdm
     import pickle
@@ -308,20 +468,58 @@ def checkSpeed():
     data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')] 
     data = data[:1024]
 
+    #'''
     st = time()
     logProbTables = [lm.makeLogProbTable(line) for line in data]
     segs = nbestSegmentationMultiProc(data, logProbTables, n=5, mode='astar')
     print('multi:', time()-st)
-
+    #'''
     st = time()
     for line in data:
         logProbTable = lm.makeLogProbTable(line)
         nbest = nbestSegmentation(line, logProbTable, n=5, mode='astar')
     print('single:', time()-st)
 
+def checkCalc():
+    from tqdm import tqdm
+    import pickle
+    path = '../results/20200210142652-sypfvsomti-data=#home#hiraoka.t#work#data#twitter_ja#twitter_ja_train_text.txt-testData=None-maxEpoch=20-maxLength=8-minFreq=25/lm.pickle'
+    lm = pickle.load(open(path, 'rb'))
+    data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')] 
+    data = data[:1024]
+
+    for line in data:
+        print(line)
+        logProbTable = lm.makeLogProbTable(line)
+        a = viterbiForward(logProbTable)
+        b = viterbiForwardOrig(logProbTable)
+        print(np.all(a[0]==b[0]), np.all(a[1]==b[1]))
+        nbest = nbestSegmentation(line, logProbTable, n=5, mode='astar')
+
+def checkBug():
+    from tqdm import tqdm
+    import pickle
+    path = '../results/20200210142652-sypfvsomti-data=#home#hiraoka.t#work#data#twitter_ja#twitter_ja_train_text.txt-testData=None-maxEpoch=20-maxLength=8-minFreq=25/lm.pickle'
+    lm = pickle.load(open(path, 'rb'))
+    
+    #lm.shrinkVocab(8000)
+    lm.theta[8000:] = 0
+    lm.reIndex()
+    
+    data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')] 
+    
+
+    np.set_printoptions(threshold=np.inf)
+    np.set_printoptions(precision=3)
+   
+    for line in tqdm(data):
+        logProbTable = lm.makeLogProbTable(line)
+        nbest = nbestSegmentation(line, logProbTable, n=5, mode='astar')
+    
 if __name__ == '__main__':
-    checkSpeed()
-    exit()
+    #checkBug(); exit()
+    #checkSpeed(); exit()
+    #checkCalc(); exit()
 
     '''
     probTable contains probability of each token
@@ -349,6 +547,8 @@ if __name__ == '__main__':
     
     print(viterbiSegmentation(line, logProbTable))
     print(nbestSegmentation(line, logProbTable, 5))
+    print(mSampleFromNBestSegmentation(line, logProbTable, m=5, n=10, mode='astar'))
+    print(nSampleWithFFBS(line, logProbTable, 5))
 
     #print(samplingSegmentation('abcde', logProbTable))
     #alpha, sumAlpha = calcAlpha(logProbTable)

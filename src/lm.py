@@ -7,14 +7,15 @@ class MultigramLM:
         self.maxLength = maxLength
         self.minFreq = minFreq
         self.theta = None
-        if data:
-            self.buildVocab(data)
         
         self.replaceSpaceMode = False
         self.wordPiecePrefix = wordPiecePrefix
         self.unkToken = unkToken
+        
+        if data:
+            self.buildVocab(data)
 
-    def buildVocab(self, data, useUnk=False):
+    def buildVocab(self, data):
         # data is a list of string
         self.unigramFreq = 0
         wordCountDict = defaultdict(lambda:0)
@@ -26,10 +27,11 @@ class MultigramLM:
                     wordCountDict[w] += 1
             self.unigramFreq += len(line)
 
-        if useUnk:
-            wordCountDict[self.unkToken] = 1
 
         self.vocab = set(k for k,v in wordCountDict.items() if len(k)==1 or self.minFreq<=v)
+        
+        # add unk
+        self.vocab.add(self.unkToken)
 
         self.word2id = {w:i for i,w in enumerate(sorted(list(self.vocab)))}
         self.id2word = {i:w for w,i in self.word2id.items()}
@@ -184,6 +186,9 @@ class MultigramLM:
             thre = 1/2 * 1/self.unigramFreq
         print('prone thre:', thre)
 
+        # escape unk
+        self.theta[self.word2id[self.unkToken]] = thre
+
         dropCount = 0
         for i in range(self.theta.shape[0]):
             if self.theta[i] < thre:
@@ -193,6 +198,9 @@ class MultigramLM:
                     self.theta[i] = 0
                     dropCount += 1
         print('drop %d tokens'%dropCount)
+
+        # smooth unk
+        self.theta = self.theta/sum(self.theta)
 
     def shrinkVocab(self, size):
         # get a size, then shrink self.vocab into the size
