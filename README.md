@@ -56,3 +56,9 @@ optional arguments:
   -tm {viterbi,viterbiStepWise,viterbiBatch,EM}, --trainMode {viterbi,viterbiStepWise,viterbiBatch,EM}
                         method to train multigram language model
 ```
+
+## Use as pip package
+To use our implementation in other projects, the useful way is running `setup.py` to call multigram from anywhere.
+```
+$ python setup.py develop
+```

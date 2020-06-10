@@ -9,8 +9,6 @@ import numba as nb
 from numba import jit, f8, i8, u1, b1
 from numba.typed import List
 
-from heapq import merge
-
 minf = float('-inf')
 
 def calcAlpha(logProbTable):

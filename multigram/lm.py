@@ -295,7 +295,7 @@ class MultigramLM:
         self.vocab = set(self.word2id.keys())
         self.replaceSpaceMode = True
 
-
+'''
 from transformers import *
 import mdp as dp
 def berttest():
@@ -314,6 +314,7 @@ def berttest():
     tmpSegs = [mlm.id2word[i] for i in dp.viterbiIdSegmentation(table,
                                                  mlm.makeLogProbTable(text, idTable=table))]
     print(' '.join(tmpSegs))
+'''
 
 if __name__=='__main__':
     berttest()
