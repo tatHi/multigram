@@ -1,11 +1,11 @@
-import lm
-import mdp as dp
+from . import lm
+from . import mdp as dp
+from . import util
 from collections import Counter
 import argparse
 import numpy as np
 from tqdm import tqdm
 import yaml
-import util
 import os
 
 RESULTS_DIR = '../results'

@@ -1,11 +1,11 @@
-import train
-import lm
+from . import train
+from . import lm
 from transformers import *
 import argparse
 from tqdm import tqdm
-import util
+from . import util
 import os
-import mdp as dp
+from . import mdp as dp
 import numpy as np
 import yaml
 

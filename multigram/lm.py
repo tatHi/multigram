@@ -145,6 +145,9 @@ class MultigramLM:
         # specify vocab if you want to limit the vocab for some reasons
         if vocab is None: vocab = self.vocab
        
+        if not hasattr(self, 'wordPiecePrefix'):
+            self.wordPiecePrefix = None
+
         if self.wordPiecePrefix: 
             heads = set([0])
             c = 0
@@ -250,7 +253,10 @@ class MultigramLM:
         return ids
 
     def save(self, path):
-        pickle.dump(self, open(path, 'wb'))
+        pickle.dump(self.__dict__, open(path, 'wb'))
+
+    def load(self, path):
+        self.__dict__ = pickle.load(open(path, 'rb'))
 
     def loadSentencePieceModel(self, path):
         import sentencepiece as sp
@@ -294,6 +300,7 @@ class MultigramLM:
         self.theta = theta
         self.vocab = set(self.word2id.keys())
         self.replaceSpaceMode = True
+
 
 '''
 from transformers import *
