@@ -143,11 +143,7 @@ def samplingSegmentation(line, logProbTable):
 
 def samplingIdSegmentation(idTable, logProbTable):
     ls = ffbs(logProbTable, 1)[0]
-    c = 0
-    ids = []
-    for l in ls:
-        c += l
-        ids.append(idTable[c-1, l-1])
+    ids = getIds(idTable, ls)
     return ids
 
 def wrapSamplingIdSegmentation(xs):
