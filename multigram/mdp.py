@@ -142,9 +142,9 @@ def samplingSegmentation(line, logProbTable):
     return tokenize(line, logProbTable, sampling=True)
 
 def samplingIdSegmentation(idTable, logProbTable, n=1):
-    ls = ffbs(logProbTable, n)
-    ids = getIds(idTable, ls)
-    return ids
+    lss = ffbs(logProbTable, n)
+    idss = [getIds(idTable, ls) for ls in lss]
+    return idss
 
 def wrapSamplingIdSegmentation(xs):
     return samplingIdSegmentation(*xs)
@@ -205,13 +205,13 @@ def nbestIdSegmentation(idTable, logProbTable, n, mode='astar'):
         print('mode should be {aster, point}')
         exit()
 
-    def getIds(idTable, ls):
-        c = 0
-        ids = []
-        for l in ls:
-            c += l
-            ids.append(idTable[c-1, l-1])
-        return ids
+    #def getIds(idTable, ls):
+    #    c = 0
+    #    ids = []
+    #    for l in ls:
+    #        c += l
+    #        ids.append(idTable[c-1, l-1])
+    #    return ids
 
     idss = [getIds(idTable, ls) for ls in lss]
 
