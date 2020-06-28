@@ -175,7 +175,7 @@ def nbestSegmentation(line, logProbTable, n, mode='astar'):
         # forward
         maxScores, _ = viterbiForward(logProbTable)
         # backward
-        segs = [tokenizeByLength(line, ls) for ls, _ in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+        segs = [tokenizeByLength(line, ls) for ls, _ in nbestAstarBackward(maxScores, logProbTable, n=n)]
         return segs
     elif mode=='point':
         # viterbi
@@ -195,7 +195,7 @@ def nbestIdSegmentation(idTable, logProbTable, n, mode='astar'):
         # forward
         maxScores, _ = viterbiForward(logProbTable)
         # backward
-        lss = nbestAstarBakckward(maxScores, logProbTable, n=n)
+        lss = nbestAstarBackward(maxScores, logProbTable, n=n)
     elif mode=='point':
         # viterbi
         bestSeg = viterbi(logProbTable)
@@ -227,7 +227,7 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar'):
     maxScores, _ = viterbiForward(logProbTable)
 
     # nbest backward
-    ress = [(tokenizeByLength(line, ls), logP) for ls, logP in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+    ress = [(tokenizeByLength(line, ls), logP) for ls, logP in nbestAstarBackward(maxScores, logProbTable, n=n)]
     segs, logPs = zip(*ress)
 
     size = len(segs)
@@ -267,8 +267,8 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar'):
     maxScores, _ = viterbiForward(logProbTable)
 
     # nbest backward
-    #ress = [(tokenizeByLength(line, ls), logP) for ls, logP in nbestAstarBakckward(maxScores, logProbTable, n=n)]
-    ress = [(getIds(idTable, ls), logP) for ls, logP in nbestAstarBakckward(maxScores, logProbTable, n=n)]
+    #ress = [(tokenizeByLength(line, ls), logP) for ls, logP in nbestAstarBackward(maxScores, logProbTable, n=n)]
+    ress = [(getIds(idTable, ls), logP) for ls, logP in nbestAstarBackward(maxScores, logProbTable, n=n)]
     isegs, logPs = zip(*ress)
 
     size = len(isegs)
@@ -339,7 +339,7 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
-def nbestAstarBakckward(viterbiScores, logProbTable, n):
+def nbestAstarBackward(viterbiScores, logProbTable, n):
     def calcNextScores(prevIdx, prevScore, path, maxLength):
         prevIdxM1 = prevIdx-1
         startIdx = max(prevIdx-maxLength, 0)
