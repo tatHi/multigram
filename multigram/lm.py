@@ -252,6 +252,12 @@ class MultigramLM:
         ids = np.array(ids)
         return ids
 
+    def getCharIdSet(self):
+        # return ids of chars(=single length tokens) as its set.
+        if not hasattr(self, 'charIdSet'):
+            self.charIdSet = {i for i,w in self.id2word.items() if len(w)==1}
+        return self.charIdSet
+
     def save(self, path):
         pickle.dump(self.__dict__, open(path, 'wb'))
 
@@ -324,18 +330,20 @@ def berttest():
 '''
 
 if __name__=='__main__':
-    berttest()
-    exit()
+    #berttest()
+    #exit()
 
     data = [line.strip() for line in open('../../../data/twitter_ja_all/train.text')]
     #data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')]
     mlm = MultigramLM()
-    mlm.loadSentencePieceModel('../../textClassification/pretrain/twitter_ja_all_8000.sentencepiece')
+    #mlm.loadSentencePieceModel('../../textClassification/pretrain/twitter_ja_all_8000.sentencepiece')
+    mlm.loadSentencePieceModel('/home/hiraoka.t/work/emSegmentation/textClassification/pretrain/twitter_ja_all_8000.sentencepiece')
     #mlm.loadSentencePieceModel('../../textClassification/pretrain/twitter_ja_8000.sentencepiece')
 
+    '''
     data = ['▁'+line.replace(' ', '▁').replace('　','▁') for line in data]
 
-    import mdp_jit as mdp
+    import mdp
     data_reprod = [mdp.viterbiSegmentation(line,
                                            mlm.makeLogProbTable(line)) for line in data]
     data_reprod = [[mlm.id2word[mlm.word2id[w]] if w in mlm.vocab
@@ -351,6 +359,9 @@ if __name__=='__main__':
         if line1!=line2:
             c += 1
     print('coverage:', 1-c/len(data))
+    '''
+    print(mlm.getCharIdSet())
+    print([mlm.id2word[c] for c in mlm.getCharIdSet()])
 
     '''
     data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')]
