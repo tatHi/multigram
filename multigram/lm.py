@@ -54,13 +54,16 @@ class MultigramLM:
                 self.vocab.add(w)
         self.unigramFreq += len(line)
 
-    def addWordToVocab(self, word):
+    def addWordToVocab(self, word, p=0.0):
         if word in self.vocab:
             return False
         
         self.vocab.add(word)
         self.word2id[word] = len(self.word2id)
         self.id2word[self.word2id[word]] = word
+
+        # add theta as its prob=0.0
+        self.theta = np.append(self.theta, p)
 
         return True
 

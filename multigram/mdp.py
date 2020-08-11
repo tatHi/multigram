@@ -457,7 +457,7 @@ def nSampleWithFFBS(line, logProbTable, n):
 def checkSpeed():
     from tqdm import tqdm
     import pickle
-    path = '../results/20200210142652-sypfvsomti-data=#home#hiraoka.t#work#data#twitter_ja#twitter_ja_train_text.txt-testData=None-maxEpoch=20-maxLength=8-minFreq=25/lm.pickle'
+    path = '/home/hiraoka.t/work/emSegmentation/multigram/results/20200210142652-sypfvsomti-data=#home#hiraoka.t#work#data#twitter_ja#twitter_ja_train_text.txt-testData=None-maxEpoch=20-maxLength=8-minFreq=25/lm.pickle'
     lm = pickle.load(open(path, 'rb'))
     data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')] 
     data = data[:1024]
@@ -512,7 +512,7 @@ def checkBug():
     
 if __name__ == '__main__':
     #checkBug(); exit()
-    #checkSpeed(); exit()
+    checkSpeed(); exit()
     #checkCalc(); exit()
 
     '''
