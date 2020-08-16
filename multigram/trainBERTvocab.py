@@ -78,7 +78,6 @@ def main():
 
     print('>>> FINISH TRAINING')
 
-    #segData = [dp.viterbiIdSegmentation(line, mlm.makeLogProbTable(line)) for line in data]
     idTables = [mlm.makeIdTable(line, unkCharIdx=mlm.word2id[mlm.unkToken]) for line in data]
     segData = [[mlm.id2word[i] 
                         for i in dp.viterbiIdSegmentation(idTable,

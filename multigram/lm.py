@@ -130,19 +130,6 @@ class MultigramLM:
                     probTable[t,l] = theta[i]
         logProbTable = np.log(probTable)
         return logProbTable
-        '''
-        probTable = np.zeros((len(line), self.maxLength))
-        for t in range(len(line)):
-            for l in range(min(t+1, self.maxLength)):
-                w = line[t-l:t+1]
-                if w in self.vocab:
-                    probTable[t,l] = self.theta[self.word2id[line[t-l:t+1]]]
-                else:
-                    probTable[t,l] = unkProb if l==0 else 0
-
-        logProbTable = np.log(probTable)
-        return logProbTable
-        '''
 
     def makeIdTable(self, line, paddingIdx=-1, unkCharIdx=None, vocab=None):
         # specify vocab if you want to limit the vocab for some reasons
@@ -291,9 +278,6 @@ class MultigramLM:
                 # set p(unk) as small value
                 s = 1e-7
             
-            #if w=='<s>' or w=='</s>':
-            #    s = 0
-            
             self.word2id[w] = i
             self.id2word[i] = w
             theta.append(s)
@@ -311,64 +295,3 @@ class MultigramLM:
         self.replaceSpaceMode = True
 
 
-'''
-from transformers import *
-import mdp as dp
-def berttest():
-    tokenizer = BertTokenizer.from_pretrained('bert-base-cased')
-    mlm = MultigramLM(maxLength=1, minFreq=1, wordPiecePrefix='##', unkToken='[UNK]')
-    mlm.setVocabFromBERTVocab(tokenizer.vocab)
-
-    text = 'It will be seen, likewise, that this Custom-House sketch'
-
-    table = mlm.makeIdTable(text, unkCharIdx=mlm.word2id['[UNK]'])
-    print(table)
-    for row in table:
-        print('\t'.join(['[PAD]' if i==-1 else mlm.id2word[i] for i in row]))
-    print(mlm.makeLogProbTable(text))
-
-    tmpSegs = [mlm.id2word[i] for i in dp.viterbiIdSegmentation(table,
-                                                 mlm.makeLogProbTable(text, idTable=table))]
-    print(' '.join(tmpSegs))
-'''
-
-if __name__=='__main__':
-    #berttest()
-    #exit()
-
-    data = [line.strip() for line in open('../../../data/twitter_ja_all/train.text')]
-    #data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')]
-    mlm = MultigramLM()
-    #mlm.loadSentencePieceModel('../../textClassification/pretrain/twitter_ja_all_8000.sentencepiece')
-    mlm.loadSentencePieceModel('/home/hiraoka.t/work/emSegmentation/textClassification/pretrain/twitter_ja_all_8000.sentencepiece')
-    #mlm.loadSentencePieceModel('../../textClassification/pretrain/twitter_ja_8000.sentencepiece')
-
-    '''
-    data = ['▁'+line.replace(' ', '▁').replace('　','▁') for line in data]
-
-    import mdp
-    data_reprod = [mdp.viterbiSegmentation(line,
-                                           mlm.makeLogProbTable(line)) for line in data]
-    data_reprod = [[mlm.id2word[mlm.word2id[w]] if w in mlm.vocab
-                    else '<unk>' for w in line] for line in data_reprod]
-
-    c = 0
-    for line1, line2 in zip(data, data_reprod):
-        line2 = ''.join(line2)
-        print(line1)
-        print(line2)
-        print(line1 == line2)
-        print('-*'*20)
-        if line1!=line2:
-            c += 1
-    print('coverage:', 1-c/len(data))
-    '''
-    print(mlm.getCharIdSet())
-    print([mlm.id2word[c] for c in mlm.getCharIdSet()])
-
-    '''
-    data = [line.strip() for line in open('../../../data/twitter_ja/twitter_ja_train_text.txt')]
-    mlm = MultigramLM(5, 3, data)
-    print(mlm.makeIdTable('ルンバ購入корейски', unkCharIdx=9))
-    print(mlm.makeLogProbTable('ルンバ購入корейски'))
-    '''
