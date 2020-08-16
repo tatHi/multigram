@@ -212,22 +212,22 @@ def main():
                         '--maxEpoch', 
                         default=10, 
                         type=int,
-                        help='max training epoch')
+                        help='max training epoch (default: 10)')
     parser.add_argument('-ml', 
                         '--maxLength', 
                         default=5, 
                         type=int,
-                        help='maximum length of word')
+                        help='maximum length of word (default: 5)')
     parser.add_argument('-mf', 
                         '--minFreq', 
                         default=50, 
                         type=int,
-                        help='minimum frequency of word')
+                        help='minimum frequency of word (default: 50)')
     parser.add_argument('-os',
                         '--outputSuffix',
                         default='',
                         type=str,
-                        help='output is dumped as timestamp_suffix.pickle if suffix is given otherwise timestamp.pickle')
+                        help='output is dumped as [timestamp]_suffix.pickle if suffix is given otherwise [timestamp].pickle')
     parser.add_argument('-tm',
                         '--trainMode',
                         default='EM',
@@ -235,7 +235,7 @@ def main():
                                  'viterbiStepWise',
                                  'viterbiBatch',
                                  'EM'],
-                        help='method to train multigram language model')
+                        help='method to train multigram language model (default: EM)')
     args = parser.parse_args()
 
     # make results dir

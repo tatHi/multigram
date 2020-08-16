@@ -1,6 +1,6 @@
 /results/
 __pycache__/
-/src/*.pyc
+/multigram/*.pyc
 /build/
 /dist/
 /multigram.egg-info/
