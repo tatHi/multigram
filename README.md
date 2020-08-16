@@ -2,6 +2,16 @@
 Python implementation of [multigram language model](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.6619&rep=rep1&type=pdf) for unsupervised word segmentation.
 The system trains the language model with stepwise updation introduced by [Online EM algorithm](https://www.aclweb.org/anthology/N09-1069.pdf) in addition to the default EM updation.
 
+# Requirements
+- python3
+- numpy
+- numba
+- scipy
+- pyyaml
+- sklearn
+- tqdm
+- pyyaml
+
 ## Quick Start 
 ### with train.py
 At the top of this repository.
@@ -60,7 +70,7 @@ We prepared 4 training methods:
 
 ## Estimate Probabilities for BERT
 This module is for estimating probabilities of WordPieces distributed as a part of BERT.
-We only support `transformers` published by HuggingFace.
+We only support `transformers` published by [HuggingFace](https://github.com/huggingface/transformers).
 
 ```
 $ pip install transformers
