@@ -32,6 +32,7 @@ optional arguments:
 
 For example, run the following command:
 ```
+$ mkdir results
 $ python -m multigram.train -d [path to training corpus]
 ```
 then, you obtain the learned language model (lm.pickle) and estimated word segmentation (seg.txt) in `results/[timestamp]/`.
@@ -70,8 +71,3 @@ optional arguments:
                         method to train multigram language model
 ```
 
-## Use as pip package
-To use our implementation in other projects, the useful way is running `setup.py` to call multigram from anywhere.
-```
-$ python setup.py develop
-```
