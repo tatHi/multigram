@@ -54,7 +54,7 @@ def EMTrain(mlm, data, maxIter=10, proning=True):
     return mlm
 
 def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
-    print('>>> START VITERVI %d EPOCH TRAINING'%(maxIter))
+    print('>>> START VITERBI BATCH %d EPOCH TRAINING'%(maxIter))
     batchSize = 256
     shuffle = True
     idTables = []
@@ -68,7 +68,7 @@ def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
             unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
             idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
 
-        for b in range(0, len(data), batchSize):
+        for b in tqdm(range(0, len(data), batchSize)):
             if len(data)-b < batchSize*0.9:
                 # if the number of contents is less than 90% of batchSize, break 
                 break
@@ -105,7 +105,7 @@ def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
     return mlm
 
 def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
-    print('>>> START VITERVI %d EPOCH TRAINING'%(maxIter))
+    print('>>> START VITERBI STEPWISE %d EPOCH TRAINING'%(maxIter))
 
     decay = 0.8
     batchSize = 256
@@ -122,7 +122,7 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
             unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
             idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
 
-        for b in range(0, len(data), batchSize):
+        for b in tqdm(range(0, len(data), batchSize)):
             if len(data)-b < batchSize*0.9:
                 # if the number of contents is less than 90% of batchSize, break 
                 break
@@ -156,7 +156,7 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
     return mlm
 
 def viterbiTrain(mlm, data, maxIter=10, proning=True):
-    print('>>> START VITERVI %d EPOCH TRAINING'%(maxIter))
+    print('>>> START VITERBI %d EPOCH TRAINING'%(maxIter))
 
     prevLH = 0
     idTables = []

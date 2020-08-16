@@ -1,6 +1,6 @@
 # MULTIGRAM LANGUAGE MODEL
 Python implementation of [multigram language model](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.6619&rep=rep1&type=pdf) for unsupervised word segmentation.
-The system trains the language model with [Online EM algorithm](https://www.aclweb.org/anthology/N09-1069.pdf).
+The system trains the language model with stepwise updation introduced by [Online EM algorithm](https://www.aclweb.org/anthology/N09-1069.pdf) in addition to the default EM updation.
 
 ## Quick Start 
 ### with train.py
@@ -48,6 +48,15 @@ $ python
 >>> mlm = train.EMTrain(mlm=mlm, data=data, maxEpoch=20)
 >>> mlm.save('path/to/output')
 ```
+
+## Training Strategies
+We prepared 4 training methods:
+- EM and Viterbi
+  - The default training schema introduced by the original [paper](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.6619&rep=rep1&type=pdf).
+  - They correspond to Eq.(5) and Eq.(6) of the paper, respectively.
+  - Viterbi training is the fastest method for learning.
+- Viterbi Batch and Viterbi Stepwise
+  - Enhance the Viterbi training to using batch-wise and stepwise updation introduced by this [paper](https://www.aclweb.org/anthology/N09-1069.pdf).
 
 ## Estimate Probabilities for BERT
 This module is for estimating probabilities of WordPieces distributed as a part of BERT.
