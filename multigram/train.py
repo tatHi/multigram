@@ -8,7 +8,7 @@ from tqdm import tqdm
 import yaml
 import os
 
-RESULTS_DIR = '../results'
+RESULTS_DIR = 'results'
 
 def EMTrain(mlm, data, maxIter=10, proning=True):
     idTables = []
@@ -245,7 +245,7 @@ def main():
 
     # set time stamp
     timeStamp = util.getTimeStamp()
-    dirName = '_'.join([timeStamp, args.outputSuffix])
+    dirName = timeStamp + ('_' + args.outputSuffix if args.outputSuffix else '')
     os.mkdir(os.path.join(RESULTS_DIR, dirName))
     
     # dump config

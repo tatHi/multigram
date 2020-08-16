@@ -32,7 +32,6 @@ optional arguments:
 
 For example, run the following command:
 ```
-$ mkdir results
 $ python -m multigram.train -d [path to training corpus]
 ```
 then, you obtain the learned language model (lm.pickle) and estimated word segmentation (seg.txt) in `results/[timestamp]/`.
@@ -51,8 +50,12 @@ $ python
 ```
 
 ## Estimate Probabilities for BERT
+This module is for estimating probabilities of WordPieces distributed as a part of BERT.
+We only support `transformers` published by HuggingFace.
+
 ```
-$ python trainBERTvocab.py -h
+$ pip install transformers
+$ python -m multigram.trainBERTvocab -h
 usage: trainBERTvocab.py [-h] -d DATA -p PRETRAIN [-me MAXEPOCH]
                          [-os OUTPUTSUFFIX]
                          [-tm {viterbi,viterbiStepWise,viterbiBatch,EM}]
