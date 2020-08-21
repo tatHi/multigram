@@ -139,7 +139,7 @@ class MultigramLM:
             self.wordPiecePrefix = None
 
         if self.wordPiecePrefix: 
-            heads = set([0])
+            heads = {0}
             c = 0
             for a in line:
                 if a == ' ':
@@ -156,7 +156,7 @@ class MultigramLM:
         for t in range(len(line)):
             for l in range(min(t+1, self.maxLength)):
                 w = line[t-l:t+1]
-                if self.wordPiecePrefix and t-l not in heads:
+                if self.wordPiecePrefix and t-l in heads:
                     w = self.wordPiecePrefix + w
                 if w in vocab:
                     if self.wordPiecePrefix and 1<=len(set(range(t-l+1,t+1))&heads):
