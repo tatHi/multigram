@@ -11,7 +11,7 @@ class Tokenizer:
         return mdp.tokenize(line, logProbTable, sampling=False)
     
     def encode_as_ids(self, line):
-        return [self.lm.word2id[w] for w in self.encode_as_pieces(line)]
+        return [self.lm.piece_to_id(w) for w in self.encode_as_pieces(line)]
 
     def sample_encode_as_pieces(self, line, _=None, __=None):
         # _ and __ are dummy arguments to mock the sentencepiece module.
@@ -21,5 +21,7 @@ class Tokenizer:
         return mdp.tokenize(line, logProbTable, sampling=True)
     
     def sample_encode_as_ids(self, line, _=None, __=None):
-        return [self.lm.word2id[w] for w in self.sample_encode_as_pieces(line)]
+        return [self.lm.piece_to_id(w) for w in self.sample_encode_as_pieces(line)]
 
+    def get_piece_size(self):
+        return len(self.lm.vocab) 

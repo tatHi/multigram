@@ -241,6 +241,10 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar'):
         exit()
     assert m<=n, 'mSamplingFromNbestSegmentation requires: m <= n'
 
+    if m==1 and n==1:
+        # viterbi
+        return (viterbiIdSegmentation(idTable, logProbTable),)
+
     # forward
     maxScores, _ = viterbiForward(logProbTable)
 
