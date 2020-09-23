@@ -10,6 +10,7 @@ class MultigramLM:
         
         self.replaceSpaceMode = False
         self.wordPiecePrefix = wordPiecePrefix
+        # memo set wordPiecePrefix as '' if you want to recognize whitespace as word boundary.
         self.unkToken = unkToken
         
         if data:
@@ -75,7 +76,26 @@ class MultigramLM:
     def id_to_piece(self, i):
         return self.id2word[i]
 
-    def setVocabFromDict(self, unigramDict):
+    def setVocabFromWord2Id(self, w2i):
+        # dict = {w:p, w:p, ...}
+        self.vocab = set(w2i.keys())
+        self.word2id = w2i
+        self.id2word = {i:w for w,i in self.word2id.items()}
+        charVocab = set(w for w in self.vocab if len(w)==1)
+        self.char2id = {w:i for i,w in enumerate(sorted(list(charVocab)))}
+        self.id2char = {i:w for w,i in self.char2id.items()}
+
+        self.unigramFreq = None
+        self.theta = np.array([1 for i in range(len(self.word2id))])
+        self.theta = self.theta/self.theta.sum()
+
+        self.maxLength = max([len(w) for w in self.vocab])
+
+    def setVocabFromWordList(self, wordList):
+        dummyUnigramDict = {w:1 for w in wordList}
+        self.setVocabFromUnigramDict(dummyUnigramDict)
+
+    def setVocabFromUnigramDict(self, unigramDict):
         # dict = {w:p, w:p, ...}
         self.vocab = set(unigramDict.keys())
         self.word2id = {w:i for i,w in enumerate(sorted(list(self.vocab)))}
@@ -86,6 +106,9 @@ class MultigramLM:
 
         self.unigramFreq = None
         self.theta = np.array([unigramDict[self.id2word[i]] for i in range(len(self.word2id))])
+        self.theta = self.theta/self.theta.sum()
+
+        self.maxLength = max([len(w) for w in self.vocab])
 
     def setVocabFromBERTVocab(self, vocab):
         self.vocab = set(vocab.keys())
@@ -105,6 +128,38 @@ class MultigramLM:
         self.theta = np.full(size, p)            
 
         self.maxLength = max([len(w) for w in vocab])
+
+    def setThetaFromSentencePiece(self, path):
+        sp = self.__loadSentencePieceModel(path)
+        spPiece2Score = {sp.id_to_piece(i):sp.get_score(i) for i in range(sp.get_piece_size())}
+        # vocabs which is not included in loaded sentencepiece
+        vocabDiff = self.vocab-set(spPiece2Score.keys()) 
+        print('vocab diff')
+        print(vocabDiff)
+
+        print('set vocab diff as small value, exp(-30)') 
+        for w in vocabDiff:
+            spPiece2Score[w] = -30
+        
+        print('set scores of special tokens as exp(-30)')
+        for w in spPiece2Score:
+            if spPiece2Score[w]==0.0:
+                # scores of special tokens (<s>, </s>, <unk>) are 0.0
+                spPiece2Score[w] = -30
+
+        self.theta = [spPiece2Score[self.id2word[i]] for i in range(len(self.vocab))]
+        self.theta = np.exp(self.theta)
+        self.theta = self.theta / self.theta.sum()
+
+    def __loadSentencePieceModel(self, path):
+        import sentencepiece as sp
+        spp = sp.SentencePieceProcessor()
+        if spp.load(path):
+            print('>>> LOAD SENTENCEPIECE MODEL')
+        else:
+            print('>>> FAIL TO LOAD SENTENCE MODEL, EXIT')
+            exit()
+        return spp
 
     def convertWords2Ids(self, words, unkIdx=-1):
         ids = [self.word2id[word] if word in self.vocab else unkIdx for word in words]
@@ -138,7 +193,8 @@ class MultigramLM:
         if not hasattr(self, 'wordPiecePrefix'):
             self.wordPiecePrefix = None
 
-        if self.wordPiecePrefix: 
+        if self.wordPiecePrefix is not None:
+            # if wordPiecePrefix is '', just skipping whitespace as word boundary.
             heads = {0}
             c = 0
             for a in line:
@@ -255,13 +311,7 @@ class MultigramLM:
         self.__dict__ = pickle.load(open(path, 'rb'))
 
     def loadSentencePieceModel(self, path):
-        import sentencepiece as sp
-        spp = sp.SentencePieceProcessor()
-        if spp.load(path):
-            print('>>> LOAD SENTENCEPIECE MODEL')
-        else:
-            print('>>> FAIL TO LOAD SENTENCE MODEL, EXIT')
-            exit()
+        spp = self.__loadSentencePieceModel(path)
         
         self.word2id = {}
         self.id2word = {}
@@ -274,9 +324,12 @@ class MultigramLM:
             w = spp.id_to_piece(i)
             s = spp.get_score(i)
             
-            if w==self.unkToken:
+            #if w==self.unkToken:
+            if s==0.0:
+                print('set %s as small value (-30)'%w)
                 # set p(unk) as small value
-                s = 1e-7
+                # set specialtoken as small value
+                s = -30
             
             self.word2id[w] = i
             self.id2word[i] = w
@@ -293,5 +346,4 @@ class MultigramLM:
         self.theta = theta
         self.vocab = set(self.word2id.keys())
         self.replaceSpaceMode = True
-
 
