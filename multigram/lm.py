@@ -324,9 +324,12 @@ class MultigramLM:
             w = spp.id_to_piece(i)
             s = spp.get_score(i)
             
-            if w==self.unkToken:
+            #if w==self.unkToken:
+            if s==0.0:
+                print('set %s as small value (-30)'%w)
                 # set p(unk) as small value
-                s = 1e-7
+                # set specialtoken as small value
+                s = -30
             
             self.word2id[w] = i
             self.id2word[i] = w
