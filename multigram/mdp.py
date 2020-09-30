@@ -15,12 +15,14 @@ def calcAlpha(logProbTable):
     T, L = logProbTable.shape
 
     ### A
+    #'''
     alpha = np.zeros((T, L))
     sumAlpha = np.zeros(T)
 
     for t in range(T):
         for l in range(L):
-            prev = sumAlpha[t-l-1] if 0 <= t-l-1 else 0
+            pi = t-l-1
+            prev = sumAlpha[pi] if 0 <= pi else 0
             alpha[t,l] = logProbTable[t,l] + prev
         sumAlpha[t] = logsumexp(alpha[t])
 
