@@ -226,7 +226,6 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar'):
 
     segIdx = np.random.choice(size, m, p=dist, replace=False)
     segs = [segs[si] for si in segIdx]
-
     return segs
 
 def getIds(idTable, ls):
@@ -269,8 +268,7 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar'):
         print(line)
 
     segIdx = np.random.choice(size, m, p=dist, replace=False)
-    isegs = [isegs[si] for si in segIdx]
-
+    isegs = tuple(isegs[si] for si in segIdx)
     return isegs
 
 def nbestPointEstimation(bestSegLen, logProbTable, n):
