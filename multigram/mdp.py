@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.special import logsumexp
+from . import util
 import random
 from multiprocessing import Pool
 import multiprocessing as multi
@@ -11,6 +12,7 @@ from numba.typed import List
 
 minf = float('-inf')
 
+@jit(nopython=True, fastmath=True)
 def calcAlpha(logProbTable):
     T, L = logProbTable.shape
 
@@ -24,7 +26,8 @@ def calcAlpha(logProbTable):
             pi = t-l-1
             prev = sumAlpha[pi] if 0 <= pi else 0
             alpha[t,l] = logProbTable[t,l] + prev
-        sumAlpha[t] = logsumexp(alpha[t])
+        #sumAlpha[t] = logsumexp(alpha[t])
+        sumAlpha[t] = util._logsumexp(alpha[t])
 
     return alpha, sumAlpha
 
@@ -39,7 +42,7 @@ def calcBeta(logProbTable):
                 break
             prev = sumBeta[t+l+1]
             beta[t,l] = logProbTable[t+l,l] + prev
-        sumBeta[t] = logsumexp(beta[t])
+        sumBeta[t] = util._logsumexp(beta[t])
 
     return sumBeta
 
