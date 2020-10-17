@@ -330,36 +330,28 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
 
         ids = range(startIdx,prevIdx)
         wordScores = logProbTable[prevIdxM1, prevIdxM1-startIdx::-1].tolist()
+        '''
         for i, wordScore in zip(ids, wordScores):
             if wordScore==minf:
                 continue
             nextScore = prevScore + wordScore
             nextPriority = nextScore + viterbiScores[i]
             yield nextPriority, nextScore, i
-
-    def _calcNextScores(prevIdx, prevScore, maxLength):
-        prevIdxM1 = prevIdx-1
-        startIdx = max(prevIdx-maxLength, 0)
-
-        ids = np.arange(startIdx, prevIdx, dtype=np.int64)
-        wordScores = logProbTable[prevIdxM1][prevIdxM1-ids]
-        nominf = np.where(wordScores!=minf)
-
-        ids = ids[nominf]
-        nextScores = prevScore + wordScores[nominf]
-        nextPriorities = nextScores + viterbiScores[ids]
-        
-        return nextPriorities, nextScores, ids
+        '''
+        return [(prevScore + wordScore + viterbiScores[i], # nextPriority
+                 prevScore + wordScore, #nextScore
+                 i) 
+                for i, wordScore in zip(ids, wordScores) if wordScore!=minf]
 
     def backtrace(ls):
         size = len(ls)
-        return [ls[i]-ls[i-1] for i in range(1,size)]
+        return tuple(ls[i]-ls[i-1] for i in range(1,size))
 
     # add BOS
     viterbiScores = np.hstack([0, viterbiScores]).tolist()
     maxLength = logProbTable.shape[1]
 
-    queue = [(0, 0, [len(viterbiScores)-1])] # initialized with endnode. requrires: (priority, score, idx to trace+)
+    queue = [(0, 0, (len(viterbiScores)-1,))] # initialized with endnode. requrires: (priority, score, idx to trace+)
     m = 0
 
     maxQsize = 0
@@ -376,7 +368,7 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
             if n<=m: break
             continue
 
-        queue += [(nextPriority, nextScore, path+[nextIdx]) 
+        queue += [(nextPriority, nextScore, path+(nextIdx,)) 
                   for nextPriority, nextScore, nextIdx in calcNextScores(prevIdx, prevScore, path, maxLength)]
 
         # sort queue
