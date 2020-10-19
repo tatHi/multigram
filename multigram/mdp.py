@@ -200,7 +200,7 @@ def nbestIdSegmentation(idTable, logProbTable, n, mode='astar'):
 
     return idss
 
-def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar'):
+def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar', lam=1.0):
     if mode!='astar':
         print('mode %s is not implemented'%mode)
         exit()
@@ -218,6 +218,7 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar'):
         return segs
 
     # m-sampling
+    dist = lam * logPs
     dist = logPs - logsumexp(logPs)
     dist = np.exp(dist)
 
@@ -239,7 +240,9 @@ def getIds(idTable, ls):
         ids.append(idTable[c-1, l-1])
     return ids
 
-def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar'):
+def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', lam=1.0):
+    lam = np.array(lam)
+
     if mode!='astar':
         print('mode %s is not implemented'%mode)
         exit()
@@ -261,8 +264,10 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar'):
         return isegs
 
     # m-sampling
+    logPs = lam * logPs
     dist = logPs - logsumexp(logPs)
     dist = np.exp(dist)
+    print(dist)
 
     if np.any(np.isnan(dist)):
         # debug
