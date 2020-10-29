@@ -196,7 +196,7 @@ def nbestIdSegmentation(idTable, logProbTable, n, mode='astar'):
         print('mode should be {aster, point}')
         exit()
 
-    idss = [getIds(idTable, ls) for ls in lss]
+    idss = [getIds(idTable, ls[0]) for ls in lss]
 
     return idss
 
@@ -267,7 +267,6 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', la
     logPs = lam * logPs
     dist = logPs - logsumexp(logPs)
     dist = np.exp(dist)
-    print(dist)
 
     if np.any(np.isnan(dist)):
         # debug

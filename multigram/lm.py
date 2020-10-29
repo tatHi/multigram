@@ -161,7 +161,8 @@ class MultigramLM:
             exit()
         return spp
 
-    def convertWords2Ids(self, words, unkIdx=-1):
+    def convertWords2Ids(self, words, unkIdx=None):
+        if unkIdx is None: unkIdx = self.word2id[self.unkToken]
         ids = [self.word2id[word] if word in self.vocab else unkIdx for word in words]
         return ids
 
@@ -187,6 +188,7 @@ class MultigramLM:
         return logProbTable
 
     def makeIdTable(self, line, paddingIdx=-1, unkCharIdx=None, vocab=None):
+        if unkCharIdx is None: unkCharIdx = self.word2id[self.unkToken]
         # specify vocab if you want to limit the vocab for some reasons
         if vocab is None: vocab = self.vocab
        
