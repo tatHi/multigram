@@ -165,6 +165,10 @@ class MultigramLM:
         if unkIdx is None: unkIdx = self.word2id[self.unkToken]
         ids = [self.word2id[word] if word in self.vocab else unkIdx for word in words]
         return ids
+    
+    def convertIds2Words(self, ids):
+        words = [self.id2word[i] for i in ids]
+        return words
 
     def makeLogProbTable(self, line, unkProb=1e-7, idTable=None, lam=1.0):
         if idTable is None:
