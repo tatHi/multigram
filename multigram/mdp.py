@@ -218,7 +218,8 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar', lam=1.0
         return segs
 
     # m-sampling
-    dist = lam * logPs
+    if lam!=1.0:
+        dist = lam * np.array(logPs)
     dist = logPs - logsumexp(logPs)
     dist = np.exp(dist)
 
@@ -268,7 +269,8 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', la
         return isegs
 
     # m-sampling
-    logPs = lam * logPs
+    if lam!=1.0:
+        logPs = lam * logPs
     dist = logPs - logsumexp(logPs)
     dist = np.exp(dist)
 
@@ -281,7 +283,7 @@ def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', la
     segIdx = np.random.choice(size, m, p=dist, replace=False)
     
     # sort segIdx: nbest dist is descending order
-    segIdx.sort()
+    #segIdx.sort()
 
     isegs = tuple(isegs[si] for si in segIdx)
     selectedDist = dist[segIdx]
@@ -386,7 +388,8 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
                   for nextPriority, nextScore, nextIdx in calcNextScores(prevIdx, prevScore, path, maxLength)]
 
         # sort queue
-        # queue = sorted(queue)
+        #queue = sorted(queue)
+        queue.sort()
 
         # limit queue size
         queue = queue[-512:]
