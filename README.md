@@ -3,14 +3,16 @@ Python implementation of [multigram language model](http://citeseerx.ist.psu.edu
 The system trains the language model with stepwise updation introduced by [Online EM algorithm](https://www.aclweb.org/anthology/N09-1069.pdf) in addition to the default EM updation.
 
 # Requirements
-- python3
-- numpy
-- numba
-- scipy
-- pyyaml
-- sklearn
-- tqdm
-- pyyaml
+```
+transformers==2.8.0
+tqdm==4.28.1
+numpy==1.18.0
+numba==0.48.0
+sentencepiece==0.1.85
+scipy==1.2.1
+PyYAML==5.3.1
+scikit_learn==0.23.2
+```
 
 ## Quick Start 
 ### with train.py
