@@ -4,7 +4,6 @@ The system trains the language model with stepwise updation introduced by [Onlin
 
 # Requirements
 ```
-transformers==2.8.0
 tqdm==4.28.1
 numpy==1.18.0
 numba==0.48.0
@@ -12,6 +11,7 @@ sentencepiece==0.1.85
 scipy==1.2.1
 PyYAML==5.3.1
 scikit_learn==0.23.2
+(transformers==2.8.0, if you need to use trainBERTvocab.py)
 ```
 
 ## Quick Start 
@@ -50,7 +50,7 @@ then, you obtain the learned language model (lm.pickle) and estimated word segme
 
 ### as a package
 ```
-$ python setup.py develop
+$ pip install --editable .
 $ python
 >>> from multigram import lm
 >>> from multigram import train
