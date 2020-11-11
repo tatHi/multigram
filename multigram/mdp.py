@@ -347,7 +347,8 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
         startIdx = max(prevIdx-maxLength, 0)
 
         ids = range(startIdx,prevIdx)
-        wordScores = logProbTable[prevIdxM1, prevIdxM1-startIdx::-1].tolist()
+        wordScores = logProbTable[prevIdxM1][prevIdxM1-startIdx::-1]
+        
         '''
         for i, wordScore in zip(ids, wordScores):
             if wordScore==minf:
@@ -367,8 +368,10 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
         return tuple(ls[i]-ls[i-1] for i in range(1,size))
 
     # add BOS
-    viterbiScores = np.hstack([0, viterbiScores]).tolist()
+    viterbiScores = [0]+viterbiScores.tolist()
+    
     maxLength = logProbTable.shape[1]
+    logProbTable = logProbTable.tolist()
 
     queue = [(0, 0, (len(viterbiScores)-1,))] # initialized with endnode. requrires: (priority, score, idx to trace+)
     m = 0
@@ -378,6 +381,7 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
     while queue:
         # pop
         _, prevScore, path = queue.pop()
+
         prevIdx = path[-1]
 
         # BOS
