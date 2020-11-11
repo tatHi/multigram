@@ -10,6 +10,8 @@ import numba as nb
 from numba import jit, f8, i8, u1, b1
 from numba.typed import List
 
+from heapq import heappop, heappush
+
 minf = float('-inf')
 
 @jit(nopython=True, fastmath=True)
@@ -339,9 +341,9 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
-@profile
+#@profile
 def nbestAstarBackward(viterbiScores, logProbTable, n):
-    @profile
+    #@profile
     def calcNextScores(prevIdx, prevScore, path, maxLength):
         prevIdxM1 = prevIdx-1
         startIdx = max(prevIdx-maxLength, 0)
@@ -362,7 +364,7 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
                  i) 
                 for i, wordScore in zip(ids, wordScores) if wordScore!=minf]
 
-    @profile
+    #@profile
     def backtrace(ls):
         size = len(ls)
         return tuple(ls[i]-ls[i-1] for i in range(1,size))
@@ -380,7 +382,7 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
 
     while queue:
         # pop
-        _, prevScore, path = queue.pop()
+        _, prevScore, path = heappop(queue)
 
         prevIdx = path[-1]
 
@@ -391,15 +393,14 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
             if n<=m: break
             continue
 
-        queue += [(nextPriority, nextScore, path+(nextIdx,)) 
+        _ = [heappush(queue, (nextPriority*-1, nextScore, path+(nextIdx,))) 
                   for nextPriority, nextScore, nextIdx in calcNextScores(prevIdx, prevScore, path, maxLength)]
 
         # sort queue
-        #queue = sorted(queue)
-        queue.sort()
+        #queue.sort()
 
         # limit queue size
-        queue = queue[-512:]
+        #queue = queue[-512:]
 
 def wrapNbestSegmentation(xs):
     return nbestSegmentation(*xs)
