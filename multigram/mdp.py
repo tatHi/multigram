@@ -339,7 +339,9 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
+@profile
 def nbestAstarBackward(viterbiScores, logProbTable, n):
+    @profile
     def calcNextScores(prevIdx, prevScore, path, maxLength):
         prevIdxM1 = prevIdx-1
         startIdx = max(prevIdx-maxLength, 0)
@@ -359,6 +361,7 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
                  i) 
                 for i, wordScore in zip(ids, wordScores) if wordScore!=minf]
 
+    @profile
     def backtrace(ls):
         size = len(ls)
         return tuple(ls[i]-ls[i-1] for i in range(1,size))
