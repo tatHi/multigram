@@ -345,7 +345,6 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
 @profile
 def backtrace(ls):
-    size = len(ls)
     return tuple(i-j for i, j in zip(ls[1:], ls[:-1]))
 
 @profile
