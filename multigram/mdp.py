@@ -239,7 +239,7 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar', lam=1.0
     segs = [segs[si] for si in segIdx]
     return segs
 
-@profile
+#@profile
 def getIds(idTable, ls):
     c = 0
     ids = []
@@ -248,7 +248,7 @@ def getIds(idTable, ls):
         ids.append(idTable[c-1, l-1])
     return ids
 
-@profile
+#@profile
 def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', lam=1.0):
     lam = np.array(lam)
 
@@ -343,11 +343,11 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
-@profile
+#@profile
 def backtrace(ls):
     return tuple(i-j for i, j in zip(ls[1:], ls[:-1]))
 
-@profile
+#@profile
 def addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores):
     if prevIdx not in CACHE:
         prevIdxM1 = prevIdx-1
@@ -369,7 +369,7 @@ def addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable
             for np, ws, i in CACHE[prevIdx]]
     return queue, CACHE
 
-@profile
+#@profile
 def nbestAstarBackward(viterbiScores, logProbTable, n):
 
     # add BOS
