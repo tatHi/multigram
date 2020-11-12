@@ -341,21 +341,29 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
-@profile
+#@profile
 def backtrace(ls):
     size = len(ls)
     return tuple(ls[i]-ls[i-1] for i in range(1,size))
 
-@profile
-def addNextNodes(queue, nominfCACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores):
-    prevIdxM1 = prevIdx-1
-    startIdx = max(prevIdx-maxLength, 0)
+#@profile
+def addNextNodes(queue, nominfCACHE, wordScoreCACHE, idsCACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores):
+    if prevIdx in nominfCACHE:
+        ids = idsCACHE[prevIdx]
+        wordScores = wordScoreCACHE[prevIdx]
+        nominf = nominfCACHE[prevIdx]
+    else:
+        prevIdxM1 = prevIdx-1
+        startIdx = max(prevIdx-maxLength, 0)
+        
+        ids = range(startIdx,prevIdx)
+        idsCACHE[prevIdx] = ids
 
-    ids = range(startIdx,prevIdx)
-    wordScores = logProbTable[prevIdxM1][prevIdxM1-startIdx::-1]
-    if prevIdxM1 not in nominfCACHE:
-        nominfCACHE[prevIdxM1] = [i for i, ws in enumerate(wordScores) if ws!=minf]
-    nominf = nominfCACHE[prevIdxM1]
+        wordScores = logProbTable[prevIdxM1][prevIdxM1-startIdx::-1]
+        wordScoreCACHE[prevIdx] = wordScores
+
+        nominf = [i for i, ws in enumerate(wordScores) if ws!=minf]
+        nominfCACHE[prevIdx] = nominf 
 
     _ = [heappush(queue, 
                   ((prevScore + wordScores[i] + viterbiScores[ids[i]])*-1, # nextPriority
@@ -370,10 +378,10 @@ def addNextNodes(queue, nominfCACHE, prevIdx, prevScore, path, maxLength, logPro
                    path + (i,))
                  ) 
             for i, wordScore in zip(ids, wordScores) if wordScore!=minf]
-    '''
-    return queue, nominfCACHE
+    #'''
+    return queue, nominfCACHE, wordScoreCACHE, idsCACHE
 
-@profile
+#@profile
 def nbestAstarBackward(viterbiScores, logProbTable, n):
 
     # add BOS
@@ -382,6 +390,8 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
     maxLength = logProbTable.shape[1]
     logProbTable = logProbTable.tolist()
     nominfCACHE = {}
+    wordScoreCACHE = {}
+    idsCACHE = {}
 
     queue = [(0, 0, (len(viterbiScores)-1,))] # initialized with endnode. requrires: (priority, score, idx to trace+)
     m = 0
@@ -399,7 +409,7 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
             if n<=m: break
             continue
         
-        queue, nominfCACHE = addNextNodes(queue, nominfCACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores)
+        queue, nominfCACHE, wordScoreCACHE, idsCACHE = addNextNodes(queue, nominfCACHE, wordScoreCACHE, idsCACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores)
 
 def wrapNbestSegmentation(xs):
     return nbestSegmentation(*xs)
