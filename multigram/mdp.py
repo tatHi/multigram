@@ -239,6 +239,7 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar', lam=1.0
     segs = [segs[si] for si in segIdx]
     return segs
 
+@profile
 def getIds(idTable, ls):
     c = 0
     ids = []
@@ -247,6 +248,7 @@ def getIds(idTable, ls):
         ids.append(idTable[c-1, l-1])
     return ids
 
+@profile
 def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', lam=1.0):
     lam = np.array(lam)
 
@@ -348,9 +350,7 @@ def backtrace(ls):
 
 @profile
 def addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores):
-    if prevIdx in CACHE:
-        ids, wordScores, nominf = CACHE[prevIdx]
-    else:
+    if prevIdx not in CACHE:
         prevIdxM1 = prevIdx-1
         startIdx = max(prevIdx-maxLength, 0)
         
@@ -358,22 +358,16 @@ def addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable
         wordScores = logProbTable[prevIdxM1][prevIdxM1-startIdx::-1]
         nominf = [i for i, ws in enumerate(wordScores) if ws!=minf]
 
-        CACHE[prevIdx] = (ids, wordScores, nominf)
+        CACHE[prevIdx] = [(wordScores[i]+viterbiScores[ids[i]],
+                           wordScores[i],
+                           (ids[i],)) for i in nominf]
 
     _ = [heappush(queue, 
-                  ((prevScore + wordScores[i] + viterbiScores[ids[i]])*-1, # nextPriority
-                   prevScore + wordScores[i], #nextScore
-                   path + (ids[i],))
+                  ((prevScore + np)*-1, # nextPriority
+                   prevScore + ws, #nextScore
+                   path + i)
                  ) 
-            for i in nominf]
-    '''
-    _ = [heappush(queue, 
-                  ((prevScore + wordScore + viterbiScores[i])*-1, # nextPriority
-                   prevScore + wordScore, #nextScore
-                   path + (i,))
-                 ) 
-            for i, wordScore in zip(ids, wordScores) if wordScore!=minf]
-    #'''
+            for np, ws, i in CACHE[prevIdx]]
     return queue, CACHE
 
 @profile
