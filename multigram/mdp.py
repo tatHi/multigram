@@ -386,16 +386,16 @@ def nbestAstarBackward(viterbiScores, logProbTable, n):
         # pop
         _, prevScore, path = heappop(queue)
 
-        # prevIdx = path[0]
+        prevIdx = path[0]
 
         # BOS
-        if path[0]==0:
+        if prevIdx==0:
             yield backtrace(path), prevScore
             m += 1
             if n<=m: break
             continue
         
-        queue, CACHE = addNextNodes(queue, CACHE, path[0], prevScore, path, maxLength, logProbTable, viterbiScores)
+        queue, CACHE = addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores)
 
 def wrapNbestSegmentation(xs):
     return nbestSegmentation(*xs)
