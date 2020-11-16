@@ -14,22 +14,21 @@ from heapq import heappop, heappush, heapify
 
 minf = float('-inf')
 
-@jit(nopython=True, fastmath=True)
+@jit(nb.types.Tuple((f8[:,:], f8[:,:]))(f8[:,:]), nopython=True, fastmath=True)
 def calcAlpha(logProbTable):
     T, L = logProbTable.shape
 
     ### A
     #'''
     alpha = np.zeros((T, L))
-    sumAlpha = np.zeros(T)
+    sumAlpha = np.zeros((T,1))
 
     for t in range(T):
         for l in range(L):
             pi = t-l-1
-            prev = sumAlpha[pi] if 0 <= pi else 0
+            prev = sumAlpha[pi,0] if 0 <= pi else 0
             alpha[t,l] = logProbTable[t,l] + prev
-        #sumAlpha[t] = logsumexp(alpha[t])
-        sumAlpha[t] = util._logsumexp(alpha[t])
+        sumAlpha[t,0] = util._logsumexp(alpha[t])
 
     return alpha, sumAlpha
 
@@ -67,26 +66,37 @@ def calcPosterior(alpha, sumBeta, sumGamma):
     bg = sumBeta[0]+sumGamma[-1]
     return np.exp(ab-bg)
 
+@profile
+@jit(nb.types.Tuple((f8[:,:], i8, i8))(f8[:,:]), nopython=True)
 def forwardFiltering(logProbTable):
     T, L = logProbTable.shape
     alpha, sumAlpha = calcAlpha(logProbTable)
-    dists = alpha - sumAlpha.reshape(T,1)
+    dists = alpha - sumAlpha
     dists = np.exp(dists)
     return dists, T, L
-    
-def backwardSampling(dists, T, L):
-    ls = []
-    p = T-1
 
+@jit(i8(i8[:], f8[:]), nopython=True)
+def rand_choice_nb(arr, prob):
+    return arr[np.searchsorted(np.cumsum(prob), np.random.random(), side="right")]
+
+#@jit(i8[:](f8[:],i8,i8),nopython=True)
+@jit(nopython=True)
+def backwardSampling(dists, T, L):
+    #ls = np.zeros(T, dtype='i')
+    ls = [0]*T
+    p = T-1
+    c = 0
     while 0<=p:
         lSize = min(L, p+1)
         dist = dists[p, :lSize]
-        l = random.choices(range(1,lSize+1), weights=dist, k=1)       
-        ls += l
-        p -= l[0]
-    ls = ls[::-1]
+        l = rand_choice_nb(np.arange(1,lSize+1), dist)       
+        ls[c] = l
+        c += 1
+        p -= l
+    ls = ls[c-1::-1]
     return ls
 
+@profile
 def ffbs(logProbTable, n=1):
     dists, T, L = forwardFiltering(logProbTable)
     lss = [backwardSampling(dists, T, L) for m in range(n)]
@@ -129,14 +139,17 @@ def tokenizeByLength(line, ls):
         pointer += l
     return segs
 
+@profile
 def tokenize(line, logProbTable, sampling):
     ls = ffbs(logProbTable, 1)[0] if sampling else viterbi(logProbTable)
     segs = tokenizeByLength(line, ls)
     return segs    
 
+@profile
 def samplingSegmentation(line, logProbTable):
     return tokenize(line, logProbTable, sampling=True)
 
+@profile
 def samplingIdSegmentation(idTable, logProbTable, n=1):
     lss = ffbs(logProbTable, n)
     idss = tuple(getIds(idTable, ls) for ls in lss)
@@ -239,7 +252,6 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar', lam=1.0
     segs = [segs[si] for si in segIdx]
     return segs
 
-#@profile
 def getIds(idTable, ls):
     c = 0
     ids = []
@@ -248,7 +260,6 @@ def getIds(idTable, ls):
         ids.append(idTable[c-1, l-1])
     return ids
 
-#@profile
 def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', lam=1.0):
     lam = np.array(lam)
 
@@ -343,11 +354,9 @@ def nbestPointEstimation(bestSegLen, logProbTable, n):
 
     return [seg2len(seg) for seg, score in sorted(nbests.items(), key=lambda x:x[1], reverse=True)]
 
-#@profile
 def backtrace(ls):
     return tuple(i-j for i, j in zip(ls[1:], ls[:-1]))
 
-#@profile
 def addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable, viterbiScores):
     if prevIdx not in CACHE:
         prevIdxM1 = prevIdx-1
@@ -369,7 +378,6 @@ def addNextNodes(queue, CACHE, prevIdx, prevScore, path, maxLength, logProbTable
             for np, ws, i in CACHE[prevIdx]]
     return queue, CACHE
 
-#@profile
 def nbestAstarBackward(viterbiScores, logProbTable, n):
 
     # add BOS
