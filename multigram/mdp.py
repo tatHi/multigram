@@ -66,7 +66,6 @@ def calcPosterior(alpha, sumBeta, sumGamma):
     bg = sumBeta[0]+sumGamma[-1]
     return np.exp(ab-bg)
 
-@profile
 @jit(nb.types.Tuple((f8[:,:], i8, i8))(f8[:,:]), nopython=True)
 def forwardFiltering(logProbTable):
     T, L = logProbTable.shape
@@ -79,10 +78,8 @@ def forwardFiltering(logProbTable):
 def rand_choice_nb(arr, prob):
     return arr[np.searchsorted(np.cumsum(prob), np.random.random(), side="right")]
 
-#@jit(i8[:](f8[:],i8,i8),nopython=True)
 @jit(nopython=True)
 def backwardSampling(dists, T, L):
-    #ls = np.zeros(T, dtype='i')
     ls = [0]*T
     p = T-1
     c = 0
@@ -96,7 +93,7 @@ def backwardSampling(dists, T, L):
     ls = ls[c-1::-1]
     return ls
 
-@profile
+@jit(nopython=True)
 def ffbs(logProbTable, n=1):
     dists, T, L = forwardFiltering(logProbTable)
     lss = [backwardSampling(dists, T, L) for m in range(n)]
@@ -139,17 +136,14 @@ def tokenizeByLength(line, ls):
         pointer += l
     return segs
 
-@profile
 def tokenize(line, logProbTable, sampling):
     ls = ffbs(logProbTable, 1)[0] if sampling else viterbi(logProbTable)
     segs = tokenizeByLength(line, ls)
     return segs    
 
-@profile
 def samplingSegmentation(line, logProbTable):
     return tokenize(line, logProbTable, sampling=True)
 
-@profile
 def samplingIdSegmentation(idTable, logProbTable, n=1):
     lss = ffbs(logProbTable, n)
     idss = tuple(getIds(idTable, ls) for ls in lss)
