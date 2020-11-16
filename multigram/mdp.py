@@ -248,10 +248,10 @@ def mSampleFromNBestSegmentation(line, logProbTable, m, n, mode='astar', lam=1.0
 
 def getIds(idTable, ls):
     c = 0
-    ids = []
-    for l in ls:
+    ids = [0]*len(ls)
+    for i, l in enumerate(ls):
         c += l
-        ids.append(idTable[c-1, l-1])
+        ids[i] = idTable[c-1, l-1]
     return ids
 
 def mSampleFromNBestIdSegmentation(idTable, logProbTable, m, n, mode='astar', lam=1.0):
