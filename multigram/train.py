@@ -65,8 +65,9 @@ def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
         iterTheta = np.zeros(mlm.theta.shape)
         
         if it==0:
+            print('BUILD IDTABLES')
             unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
-            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
+            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in tqdm(data)]
 
         for b in tqdm(range(0, len(data), batchSize)):
             if len(data)-b < batchSize*0.9:
@@ -79,7 +80,7 @@ def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
 
             # viterbi
             tmpSegs = [i
-                       for line, idTable in zip(data, idTables)
+                       for line, idTable in zip(lines, idTables)
                        for i in dp.viterbiIdSegmentation(idTable,
                                                          mlm.makeLogProbTable(line, idTable=idTable))]
 
@@ -119,8 +120,9 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
         indices = np.random.permutation(len(data)) if shuffle else np.arange(len(data))
 
         if it==0:
+            print('BUILD IDTABLES')
             unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
-            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
+            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in tqdm(data)]
 
         for b in tqdm(range(0, len(data), batchSize)):
             if len(data)-b < batchSize*0.9:
@@ -132,7 +134,7 @@ def viterbiTrainStepWise(mlm, data, maxIter=10, proning=True):
 
             # viterbi
             tmpSegs = [i
-                       for line, idTable in zip(data, idTables)
+                       for line, idTable in zip(lines, idTables)
                        for i in dp.viterbiIdSegmentation(idTable,
                                                          mlm.makeLogProbTable(line, idTable=idTable))]
 
@@ -164,13 +166,14 @@ def viterbiTrain(mlm, data, maxIter=10, proning=True):
         print('iter: %d/%d'%(it+1, maxIter))
 
         if it==0:
+            print('BUILD IDTABLES')
             unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
             unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
-            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in data]
+            idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in tqdm(data)]
 
         # viterbi
         tmpSegs = [i
-                   for line, idTable in zip(data, idTables)
+                   for line, idTable in zip(tqdm(data), idTables)
                    for i in dp.viterbiIdSegmentation(idTable,
                                                      mlm.makeLogProbTable(line, idTable=idTable))]
 
