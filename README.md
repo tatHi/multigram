@@ -57,7 +57,7 @@ $ python
 >>> maxEpoch = 20
 >>> data = [line.strip() for line in open('path/to/text')]
 >>> mlm = lm.MultigramLM(data=data)
->>> mlm = train.EMTrain(mlm=mlm, data=data, maxEpoch=20)
+>>> mlm = train.EMTrain(mlm=mlm, data=data, maxIter=maxEpoch)
 >>> mlm.save('path/to/output')
 ```
 
