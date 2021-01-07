@@ -97,14 +97,16 @@ optional arguments:
 
 # Use Trained Model as Tokenizer
 ```
-from multigram import lm, tokenizer
-mlm = lm.MultigramLM()
-mlm.load('/path/to/trained/model/lm.pickle')
-tk = tokenizer.Tokenizer(mlm)
+>>> from multigram import lm, tokenizer
+>>> mlm = lm.MultigramLM()
+>>> mlm.load('/path/to/trained/model/lm.pickle')
+# you can also load sentencepiece model as:
+>>> mlm.loadSentencePieceModel('path/to/sentencepiece.model')
+>>> tk = tokenizer.Tokenizer(mlm)
 
 # you can use tk as SentencePieceProcessor in almost all cases.
-sent = 'hello world'
-tk.encode_as_pieces(sent) # viterbi tokenization
-tk.sample_encode_as_pieces(sent, -1, 0.2) # sampling tokenization with FFBS and alpha=0.2
+>>> sent = 'hello world'
+>>> tk.encode_as_pieces(sent) # viterbi tokenization
+>>> tk.sample_encode_as_pieces(sent, -1, 0.2) # sampling tokenization with FFBS and alpha=0.2
 ```
 
