@@ -210,7 +210,6 @@ class MultigramLM:
                 c += 1
             # the size of table's column is gained by removing space when using word piece mode
             line = ''.join(line.split())
-
         idTable = np.full((len(line), self.maxLength), paddingIdx)
         if unkCharIdx is not None:
             idTable[:,0] = unkCharIdx
@@ -219,11 +218,14 @@ class MultigramLM:
             for l in range(min(t+1, self.maxLength)):
                 w = line[t-l:t+1]
                 if self.wordPiecePrefix and t-l in heads:
+                    if 0<sum([i in heads for i in range(t-l+1,t+1)]):
+                        continue 
                     w = self.wordPiecePrefix + w
                 if w in vocab:
                     if self.wordPiecePrefix and 1<=len(set(range(t-l+1,t+1))&heads):
                         continue
                     idTable[t,l] = self.word2id[w]
+
         return idTable
 
     def getWordIdsInLine(self, line):
@@ -318,6 +320,7 @@ class MultigramLM:
 
     def loadSentencePieceModel(self, path):
         spp = self.__loadSentencePieceModel(path)
+        self.wordPiecePrefix = '▁'
         
         self.word2id = {}
         self.id2word = {}

@@ -144,10 +144,10 @@ def tokenize(line, logProbTable, sampling):
 def samplingSegmentation(line, logProbTable):
     return tokenize(line, logProbTable, sampling=True)
 
-def samplingIdSegmentation(idTable, logProbTable, n=1):
-    lss = ffbs(logProbTable, n)
-    idss = tuple(getIds(idTable, ls) for ls in lss)
-    return idss
+def samplingIdSegmentation(idTable, logProbTable):
+    ls = ffbs(logProbTable, 1)[0]
+    ids = getIds(idTable, ls)
+    return ids
 
 def wrapSamplingIdSegmentation(xs):
     return samplingIdSegmentation(*xs)

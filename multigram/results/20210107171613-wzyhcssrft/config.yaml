@@ -1,0 +1,6 @@
+data: /home/hiraoka.t/work/data/twitter_en_large/train.text
+dirName: 20210107171613-wzyhcssrft
+maxEpoch: 10
+outputSuffix: ''
+pretrain: bert-base-cased
+trainMode: viterbi
