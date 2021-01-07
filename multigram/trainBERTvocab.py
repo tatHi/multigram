@@ -9,7 +9,7 @@ from . import mdp as dp
 import numpy as np
 import yaml
 
-RESULTS_DIR = 'results'
+RESULTS_DIR = '../results'
 
 def main():
     parser = argparse.ArgumentParser()

@@ -8,7 +8,7 @@ from tqdm import tqdm
 import yaml
 import os
 
-RESULTS_DIR = 'results'
+RESULTS_DIR = '../results'
 
 def EMTrain(mlm, data, maxIter=10, proning=True):
     idTables = []
