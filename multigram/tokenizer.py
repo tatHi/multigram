@@ -6,6 +6,7 @@ class Tokenizer:
     def __init__(self, mlm):
         self.mlm = mlm
         self.id_to_piece = self.mlm.id_to_piece
+        self.piece_to_id = self.mlm.piece_to_id
         self.wordPieceMode = hasattr(self.mlm, 'wordPiecePrefix') and self.mlm.wordPiecePrefix is not None
     
     def encode_as_pieces(self, line):
