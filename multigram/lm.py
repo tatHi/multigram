@@ -95,13 +95,23 @@ class MultigramLM:
         dummyUnigramDict = {w:1 for w in wordList}
         self.setVocabFromUnigramDict(dummyUnigramDict)
 
-    def setVocabFromUnigramDict(self, unigramDict):
+    def setVocabFromUnigramDict(self, unigramDict, word2id=None, char2id=None):
         # dict = {w:p, w:p, ...}
+        
+        # word
         self.vocab = set(unigramDict.keys())
-        self.word2id = {w:i for i,w in enumerate(sorted(list(self.vocab)))}
+        if word2id:
+            self.word2id = word2id
+        else:
+            self.word2id = {w:i for i,w in enumerate(sorted(list(self.vocab)))}
         self.id2word = {i:w for w,i in self.word2id.items()}
+
+        # char
         charVocab = set(w for w in self.vocab if len(w)==1)
-        self.char2id = {w:i for i,w in enumerate(sorted(list(charVocab)))}
+        if char2id:
+            self.char2id = char2id
+        else:
+            self.char2id = {w:i for i,w in enumerate(sorted(list(charVocab)))}
         self.id2char = {i:w for w,i in self.char2id.items()}
 
         self.unigramFreq = None
