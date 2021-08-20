@@ -8,8 +8,6 @@ from tqdm import tqdm
 import yaml
 import os
 
-RESULTS_DIR = '../results'
-
 def EMTrain(mlm, data, maxIter=10, proning=True):
     idTables = []
     for it in range(maxIter):
@@ -239,21 +237,25 @@ def main():
                                  'viterbiBatch',
                                  'EM'],
                         help='method to train multigram language model (default: EM)')
+    parser.add_argument('-rd',
+                        '--resultDir',
+                        default='./',
+                        help='dir to output (default: ./)')
     args = parser.parse_args()
 
     # make results dir
-    if not os.path.isdir(RESULTS_DIR):
-        os.mkdir(RESULTS_DIR)
+    if not os.path.isdir(args.resultDir):
+        os.makedirs(args.resultDir)
         print('>>> CREATE RESULTS DIR')
 
     # set time stamp
     timeStamp = util.getTimeStamp()
     dirName = timeStamp + ('_' + args.outputSuffix if args.outputSuffix else '')
-    os.mkdir(os.path.join(RESULTS_DIR, dirName))
+    os.mkdir(os.path.join(args.resultDir, dirName))
     
     # dump config
     setattr(args, 'dirName', dirName)
-    open(os.path.join(RESULTS_DIR, dirName, 'config.yaml'), 'w').write(yaml.dump(vars(args)))
+    open(os.path.join(args.resultDir, dirName, 'config.yaml'), 'w').write(yaml.dump(vars(args)))
 
     # load data
     data = [line.strip() for line in open(args.data)]
@@ -287,11 +289,11 @@ def main():
     print('log-likelihood:', loglikelihood/sum([len(segLine) for segLine in segData]))
 
     # dump
-    with open(os.path.join(RESULTS_DIR, dirName, 'seg.txt'), 'w') as f:
+    with open(os.path.join(args.resultDir, dirName, 'seg.txt'), 'w') as f:
         for segLine in segData:
             f.write(' '.join(segLine)+'\n')
 
-    path = os.path.join(RESULTS_DIR, dirName, 'lm.pickle')
+    path = os.path.join(args.resultDir, dirName, 'lm.pickle')
     mlm.save(path)
     print('>>> DUMP RESULTS')
 

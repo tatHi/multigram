@@ -39,6 +39,8 @@ optional arguments:
                         otherwise [timestamp].pickle
   -tm {viterbi,viterbiStepWise,viterbiBatch,EM}, --trainMode {viterbi,viterbiStepWise,viterbiBatch,EM}
                         method to train multigram language model (default: EM)
+  -rd RESULTDIR, --resultDir RESULTDIR
+                        dir to output (default: ./)
 ```
 
 
@@ -46,7 +48,7 @@ For example, run the following command:
 ```
 $ python -m multigram.train -d [path to training corpus]
 ```
-then, you obtain the learned language model (lm.pickle) and estimated word segmentation (seg.txt) in `results/[timestamp]/`.
+then, you obtain the learned language model (lm.pickle) and estimated word segmentation (seg.txt) in `[RESULTDIR]/[timestamp](_[OUTPUTSUFFIX])/`.
 
 ### as a package
 ```
@@ -93,6 +95,8 @@ optional arguments:
                         is given otherwise timestamp.pickle
   -tm {viterbi,viterbiStepWise,viterbiBatch,EM}, --trainMode {viterbi,viterbiStepWise,viterbiBatch,EM}
                         method to train multigram language model
+  -rd RESULTDIR, --resultDir RESULTDIR
+                        dir to output (default: ./)
 ```
 
 # Use Trained Model as Tokenizer
