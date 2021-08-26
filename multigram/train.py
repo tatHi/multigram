@@ -8,6 +8,8 @@ from tqdm import tqdm
 import yaml
 import os
 
+EPS = 1e-30
+
 def EMTrain(mlm, data, maxIter=10, proning=True):
     idTables = []
     for it in range(maxIter):
@@ -23,7 +25,7 @@ def EMTrain(mlm, data, maxIter=10, proning=True):
             else:
                 idTable = idTables[j]
             logProbTable = mlm.makeLogProbTable(line, idTable=idTable)
-            
+
             # dp
             alpha, sumAlpha = dp.calcAlpha(logProbTable)
             sumBeta = dp.calcBeta(logProbTable)
@@ -37,6 +39,7 @@ def EMTrain(mlm, data, maxIter=10, proning=True):
             iterTheta[idTable[idx]] += posterior[idx]
 
         # re-normalize
+        iterTheta = iterTheta + EPS
         iterTheta = iterTheta / sum(iterTheta)
 
         # update
@@ -93,6 +96,7 @@ def viterbiTrainBatch(mlm, data, maxIter=10, proning=True):
             iterTheta += batchTheta
 
         # re-normalize
+        iterTheta = iterTheta + EPS
         iterTheta = iterTheta / sum(iterTheta)
 
         # update

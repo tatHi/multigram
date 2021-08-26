@@ -57,8 +57,11 @@ def calcGamma(logProbTable, alpha, sumAlpha):
                 prev = 0
             else:
                 prev = sumGamma[t-l-1]
+           
             gamma[t,l] = prev * np.exp(alpha[t,l] - sumAlpha[t])
+
         sumGamma[t] = 1 + sum(gamma[t])
+
     return np.log(sumGamma)
 
 def calcPosterior(alpha, sumBeta, sumGamma):
