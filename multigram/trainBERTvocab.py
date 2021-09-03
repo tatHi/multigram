@@ -62,9 +62,8 @@ def main():
     print('>>> LOAD DATA')
 
     # load tokenizer
-    tokenizer = BertTokenizer.from_pretrained(args.pretrain)
-    mlm = lm.MultigramLM(maxLength=1, minFreq=1, wordPiecePrefix='##', unkToken='[UNK]')
-    mlm.setVocabFromBERTVocab(tokenizer.vocab)
+    mlm = lm.MultigramLM()
+    mlm.loadBERTTokenizer(args.pretrain)
     print('>>> INITIALIZE MLM WITH BERT TOKENIZER')
 
     if args.trainMode=='EM':

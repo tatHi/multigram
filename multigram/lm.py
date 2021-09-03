@@ -3,14 +3,18 @@ from collections import defaultdict
 import pickle
 
 class MultigramLM:
-    def __init__(self, maxLength=5, minFreq=4, data=None, wordPiecePrefix=None, unkToken='<unk>'):
+    def __init__(self, maxLength=5, minFreq=4, data=None, 
+                 wordHeadPrefix=None, wordInterPrefix=None, unkToken='<unk>'):
         self.maxLength = maxLength
         self.minFreq = minFreq
         self.theta = None
         
         self.replaceSpaceMode = False
-        self.wordPiecePrefix = wordPiecePrefix
-        # memo set wordPiecePrefix as '' if you want to recognize whitespace as word boundary.
+
+        self.wordHeadPrefix = wordHeadPrefix    # _th is (sentencepiece like)
+        self.wordInterPrefix = wordInterPrefix  # th @@is (word piece like)
+
+        # memo set wordHeadPrefix as '' if you want to recognize whitespace as word boundary.
         self.unkToken = unkToken
         
         if data:
@@ -206,11 +210,17 @@ class MultigramLM:
         # specify vocab if you want to limit the vocab for some reasons
         if vocab is None: vocab = self.vocab
        
-        if not hasattr(self, 'wordPiecePrefix'):
-            self.wordPiecePrefix = None
+        if not hasattr(self, 'wordHeadPrefix'):
+            if hasattr(self, 'wordPiecePrefix'):
+                # compatibility with a version using "wordPiecePrefix" that will be removed in future
+                self.wordHeadPrefix = self.wordPiecePrefix
+            else:
+                self.wordHeadPrefix = None
+        if not hasattr(self, 'wordInterPrefix'):
+            self.wordInterPrefix = None
 
-        if self.wordPiecePrefix is not None:
-            # if wordPiecePrefix is '', just skipping whitespace as word boundary.
+        if (self.wordHeadPrefix is not None) or (self.wordInterPrefix is not None):
+            # if wordHeadPrefix is '', just skipping whitespace as word boundary.
             heads = {0}
             c = 0
             for a in line:
@@ -220,6 +230,9 @@ class MultigramLM:
                 c += 1
             # the size of table's column is gained by removing space when using word piece mode
             line = ''.join(line.split())
+        else:
+            heads = None
+
         idTable = np.full((len(line), self.maxLength), paddingIdx)
         if unkCharIdx is not None:
             idTable[:,0] = unkCharIdx
@@ -227,12 +240,16 @@ class MultigramLM:
         for t in range(len(line)):
             for l in range(min(t+1, self.maxLength)):
                 w = line[t-l:t+1]
-                if self.wordPiecePrefix and t-l in heads:
+                if heads:
                     if 0<sum([i in heads for i in range(t-l+1,t+1)]):
                         continue 
-                    w = self.wordPiecePrefix + w
+                    if self.wordHeadPrefix and t-l in heads:
+                        w = self.wordHeadPrefix + w
+                    elif self.wordInterPrefix and t-l not in heads:
+                        w = self.wordInterPrefix + w
+
                 if w in vocab:
-                    if self.wordPiecePrefix and 1<=len(set(range(t-l+1,t+1))&heads):
+                    if self.wordHeadPrefix and 1<=len(set(range(t-l+1,t+1))&heads):
                         continue
                     idTable[t,l] = self.word2id[w]
 
@@ -328,9 +345,20 @@ class MultigramLM:
     def load(self, path):
         self.__dict__ = pickle.load(open(path, 'rb'))
 
+    def loadBERTTokenizer(self, name):
+        import transformers
+        print('>>> LOAD BERT TOKENIZER NAMED %s'%name)
+        bt = transformers.AutoTokenizer.from_pretrained(name)
+        print('>>> DONE')
+    
+        self.wordInterPrefix = '##'
+        self.unkToken = '[UNK]'    
+
+        self.setVocabFromBERTVocab(bt.vocab)
+
     def loadSentencePieceModel(self, path):
         spp = self.__loadSentencePieceModel(path)
-        self.wordPiecePrefix = '▁'
+        self.wordHeadPrefix = '▁'
         
         self.word2id = {}
         self.id2word = {}
