@@ -80,6 +80,22 @@ class MultigramLM:
     def id_to_piece(self, i):
         return self.id2word[i]
 
+    def setThetaFromTokenizedData(self, segData, smoothingValue=1.0):
+        # segData: ['this', 'is', 'a', 'pen', '.']
+        if not hasattr(self, 'vocab'):
+            wordList = list({w for line in segData for w in line})
+            setVocabFromWordList(wordList)
+
+        unk = '<unk>' if '<unk>' in self.vocab else '[UNK]'
+
+        self.theta = [smoothingValue]*len(self.vocab)
+        for line in segData:
+            for w in line:
+                i = self.word2id[w] if w in self.word2id else self.word2id[unk]
+                self.theta[i] += 1
+        self.theta = np.array(self.theta)
+        self.theta = self.theta / self.theta.sum()
+
     def setVocabFromWord2Id(self, w2i):
         # dict = {w:p, w:p, ...}
         self.vocab = set(w2i.keys())
@@ -97,6 +113,8 @@ class MultigramLM:
 
     def setVocabFromWordList(self, wordList):
         dummyUnigramDict = {w:1 for w in wordList}
+        if '<unk>' not in dummyUnigramDict and '[UNK]' not in dummyUnigramDict:
+            dummyUnigramDict['<unk>'] = 1
         self.setVocabFromUnigramDict(dummyUnigramDict)
 
     def setVocabFromUnigramDict(self, unigramDict, word2id=None, char2id=None):
