@@ -237,7 +237,11 @@ class MultigramLM:
         if not hasattr(self, 'wordInterPrefix'):
             self.wordInterPrefix = None
 
-        if (self.wordHeadPrefix is not None) or (self.wordInterPrefix is not None):
+        if self.wordHeadPrefix is not None:
+            line = self.wordHeadPrefix + line.replace(' ', self.wordHeadPrefix)
+
+        #if (self.wordHeadPrefix is not None) or (self.wordInterPrefix is not None):
+        if self.wordInterPrefix is not None:
             # if wordHeadPrefix is '', just skipping whitespace as word boundary.
             heads = {0}
             c = 0
@@ -261,16 +265,15 @@ class MultigramLM:
                 if heads:
                     if 0<sum([i in heads for i in range(t-l+1,t+1)]):
                         continue 
-                    if self.wordHeadPrefix and t-l in heads:
-                        w = self.wordHeadPrefix + w
-                    elif self.wordInterPrefix and t-l not in heads:
+                    #if self.wordHeadPrefix and t-l in heads:
+                    #    w = self.wordHeadPrefix + w
+                    if self.wordInterPrefix and t-l not in heads:
                         w = self.wordInterPrefix + w
 
                 if w in vocab:
-                    if self.wordHeadPrefix and 1<=len(set(range(t-l+1,t+1))&heads):
-                        continue
+                    #if self.wordHeadPrefix and 1<=len(set(range(t-l+1,t+1))&heads):
+                    #    continue
                     idTable[t,l] = self.word2id[w]
-
         return idTable
 
     def getWordIdsInLine(self, line):
