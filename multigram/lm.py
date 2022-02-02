@@ -84,7 +84,7 @@ class MultigramLM:
         # segData: ['this', 'is', 'a', 'pen', '.']
         if not hasattr(self, 'vocab'):
             wordList = list({w for line in segData for w in line})
-            setVocabFromWordList(wordList)
+            self.setVocabFromWordList(wordList)
 
         unk = '<unk>' if '<unk>' in self.vocab else '[UNK]'
 

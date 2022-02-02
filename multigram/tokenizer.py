@@ -1,5 +1,6 @@
 from . import lm
 from . import mdp
+import unicodedata
 
 # each method name is correlated to sentencepiece
 class Tokenizer:
@@ -10,18 +11,22 @@ class Tokenizer:
         self.wordPieceMode = hasattr(self.mlm, 'wordPiecePrefix') and self.mlm.wordPiecePrefix is not None
     
     def encode_as_pieces(self, line):
+        line =unicodedata.normalize('NFKC', line)
         return self.mlm.convertIds2Words(self.encode_as_ids(line))
     
     def encode_as_ids(self, line):
+        line =unicodedata.normalize('NFKC', line)
         idTable = self.mlm.makeIdTable(line)
         logProbTable = self.mlm.makeLogProbTable(line, idTable=idTable)
         ids = mdp.viterbiIdSegmentation(idTable, logProbTable)
         return ids
 
     def sample_encode_as_pieces(self, line, n=-1, alpha=0.2):
+        line =unicodedata.normalize('NFKC', line)
         return self.mlm.convertIds2Words(self.sample_encode_as_ids(line, n, alpha))
     
     def sample_encode_as_ids(self, line, n=-1, alpha=0.2):
+        line =unicodedata.normalize('NFKC', line)
         idTable = self.mlm.makeIdTable(line)
         logProbTable = self.mlm.makeLogProbTable(line, idTable=idTable)
         if 0<n:
@@ -33,9 +38,11 @@ class Tokenizer:
         return ids
 
     def nbest_encode_as_pieces(self, line, n):
+        line =unicodedata.normalize('NFKC', line)
         return [self.mlm.convertIds2Words(ids) for ids in self.nbest_encode_as_ids(line, n)]
     
     def nbest_encode_as_ids(self, line, n):
+        line =unicodedata.normalize('NFKC', line)
         idTable = self.mlm.makeIdTable(line)
         logProbTable = self.mlm.makeLogProbTable(line, idTable=idTable)
         return mdp.nbestIdSegmentation(idTable, logProbTable, n)
