@@ -7,8 +7,80 @@ import numpy as np
 from tqdm import tqdm
 import yaml
 import os
+from time import time
 
 EPS = 1e-30
+
+def EMProc(mlm, lines, idTables):
+    iterTheta = np.zeros(mlm.theta.shape)
+    for line, idTable in zip(lines, idTables):
+        logProbTable = mlm.makeLogProbTable(line, idTable=idTable)
+
+        # dp
+        alpha, sumAlpha = dp.calcAlpha(logProbTable)
+        sumBeta = dp.calcBeta(logProbTable)
+        sumGamma = dp.calcGamma(logProbTable, alpha, sumAlpha)
+        
+        # posterior
+        posterior = dp.calcPosterior(alpha, sumBeta, sumGamma)
+        
+        # update
+        idx = np.where(idTable!=-1)
+        
+        iterTheta[idTable[idx]] += posterior[idx]
+    return iterTheta
+
+def EMTrainMultiThread(mlm, data, maxIter, numThreads=10, proning=True):
+    from concurrent.futures import ProcessPoolExecutor
+    import random
+
+    # Create ID Tables
+    print('CREATE ID TABLES...')
+    unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
+    idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in tqdm(data)]
+    print('DONE')
+
+    for it in range(maxIter):
+        print('iter: %d/%d'%(it+1, maxIter))
+        iterTheta = np.zeros(mlm.theta.shape)
+
+        numThreads = os.cpu_count()-2 # とりあえず-2
+
+        # thread sizeにデータをスプリットする
+        print('MULTI-THREAD: N =', numThreads)
+        idx = list(range(len(data)))
+        random.shuffle(idx)          # 長さをある程度揃えるためにシャッフルする
+        idBatches = [idx[i::numThreads] for i in range(numThreads)]
+ 
+        with tqdm(total=len(idBatches)) as progress:
+            with ProcessPoolExecutor(max_workers=numThreads) as executor:
+                futures = []
+                for batch in idBatches:
+                    ls = [data[i] for i in batch]
+                    its = [idTables[i] for i in batch]
+                    future = executor.submit(EMProc, mlm, ls, its)
+                    future.add_done_callback(lambda p: progress.update())
+                    futures.append(future)
+                result = [f.result() for f in futures]
+                
+        for r in result:
+            iterTheta += r
+
+        # re-normalize
+        iterTheta = iterTheta + EPS
+        iterTheta = iterTheta / sum(iterTheta)
+
+        # update
+        mlm.theta = iterTheta
+
+        # proning
+        if proning: mlm.proneVocab()
+        
+        tmpSegs = [mlm.id2word[i] for i in dp.viterbiIdSegmentation(idTables[0],
+                                                 mlm.makeLogProbTable(data[0], idTable=idTables[0]))]
+        print(' '.join(tmpSegs))
+
+    return mlm    
 
 def EMTrain(mlm, data, maxIter=10, proning=True):
     idTables = []
@@ -48,8 +120,8 @@ def EMTrain(mlm, data, maxIter=10, proning=True):
         # proning
         if proning: mlm.proneVocab()
         
-        tmpSegs = [mlm.id2word[i] for i in dp.viterbiIdSegmentation(idTable,
-                                                 mlm.makeLogProbTable(data[0], idTable=idTable))]
+        tmpSegs = [mlm.id2word[i] for i in dp.viterbiIdSegmentation(idTables[0],
+                                                 mlm.makeLogProbTable(data[0], idTable=idTables[0]))]
         print(' '.join(tmpSegs))
 
     return mlm
@@ -239,7 +311,9 @@ def main():
                         choices=['viterbi',
                                  'viterbiStepWise',
                                  'viterbiBatch',
-                                 'EM'],
+                                 'EM',
+                                 'EMMT'
+                                 ],
                         help='method to train multigram language model (default: EM)')
     parser.add_argument('-rd',
                         '--resultDir',
@@ -271,6 +345,8 @@ def main():
 
     if args.trainMode=='EM':
         mlm = EMTrain(mlm, data, args.maxEpoch)
+    elif args.trainMode=='EMMT':
+        mlm = EMTrainMultiThread(mlm, data, args.maxEpoch, 10)
     elif args.trainMode=='viterbi':
         mlm = viterbiTrain(mlm, data, args.maxEpoch)
     elif args.trainMode=='viterbiStepWise':
