@@ -48,9 +48,12 @@ class MultigramLM:
         print('>>> BUILD VOCABULARY')
         print('possible n-grams (n=%d):'%self.maxLength, len(self.vocab))
 
+        self.randomizeTheta()
+        print('>>> INITIALIZE THETA')\
+        
+    def randomizeTheta(self):
         self.theta = np.random.rand(len(self.vocab))
         self.theta = self.theta/sum(self.theta)
-        print('>>> INITIALIZE THETA')
 
     def __addLineToVocab(self, line):
         for i in range(len(line)):
@@ -304,8 +307,10 @@ class MultigramLM:
                     dropCount += 1
         print('drop %d tokens'%dropCount)
 
-        # smooth unk
+        # smooth theta
         self.theta = self.theta/sum(self.theta)
+
+        # TODO: これをやるとunigram確率が壊れるので，再推定する必要がある
 
     def shrinkVocab(self, size):
         # get a size, then shrink self.vocab into the size
