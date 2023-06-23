@@ -11,6 +11,10 @@ from time import time
 
 EPS = 1e-30
 
+def createIdTableProc(mlm, lines, unkid):
+    idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in lines]
+    return idTables
+
 def EMProc(mlm, lines, idTables):
     iterTheta = np.zeros(mlm.theta.shape)
     for line, idTable in zip(lines, idTables):
@@ -34,24 +38,42 @@ def EMTrainMultiThread(mlm, data, maxIter, numThreads=10, proning=True):
     from concurrent.futures import ProcessPoolExecutor
     import random
 
-    # Create ID Tables
+    numThreads = os.cpu_count()-2 
+
+    ### PREPARATION FOR EM TRAINING WITH MULTI THREADING ###
+    print('MULTI-THREAD: N =', numThreads)
+    MAX_SAMPLE_SIZE = 50000
+    idx = list(range(len(data)))
+
+    if len(data) // numThreads < MAX_SAMPLE_SIZE:
+        idBatches = [idx[i::numThreads] for i in range(numThreads)]
+    else:
+        # split data into every MAX_SAMPLE_SIZE
+        idBatches = [idx[i:i+MAX_SAMPLE_SIZE] for i in range(0, len(data), MAX_SAMPLE_SIZE)]
+    print('EACH BATCH SIZE:', len(idBatches))
+
+    ### Create ID Tables ###
     print('CREATE ID TABLES...')
     unkid = mlm.word2id[mlm.unkToken] if mlm.unkToken else -1
-    idTables = [mlm.makeIdTable(line, unkCharIdx=unkid) for line in tqdm(data)]
+
+    with tqdm(total=len(idBatches)) as progress:
+        with ProcessPoolExecutor(max_workers=numThreads) as executor:
+            futures = []
+            for batch in idBatches:
+                lines = [data[i] for i in batch]
+                future = executor.submit(createIdTableProc, mlm, lines, unkid)
+                future.add_done_callback(lambda p: progress.update())
+                futures.append(future)
+            result = [f.result() for f in futures]
+    idTables = []
+    for r in result:
+        idTables += r
     print('DONE')
 
     for it in range(maxIter):
         print('iter: %d/%d'%(it+1, maxIter))
         iterTheta = np.zeros(mlm.theta.shape)
 
-        numThreads = os.cpu_count()-2 # とりあえず-2
-
-        # thread sizeにデータをスプリットする
-        print('MULTI-THREAD: N =', numThreads)
-        idx = list(range(len(data)))
-        random.shuffle(idx)          # 長さをある程度揃えるためにシャッフルする
-        idBatches = [idx[i::numThreads] for i in range(numThreads)]
- 
         with tqdm(total=len(idBatches)) as progress:
             with ProcessPoolExecutor(max_workers=numThreads) as executor:
                 futures = []
