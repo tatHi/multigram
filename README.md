@@ -1,5 +1,5 @@
 # MULTIGRAM LANGUAGE MODEL
-Python implementation of [multigram language model](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.56.6619&rep=rep1&type=pdf) for unsupervised word segmentation.
+Python implementation of [multigram language model](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=479391) for unsupervised word segmentation.
 The system trains the language model with stepwise updation introduced by [Online EM algorithm](https://www.aclweb.org/anthology/N09-1069.pdf) in addition to the default EM updation.
 
 # Requirements
