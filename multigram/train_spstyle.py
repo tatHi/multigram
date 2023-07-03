@@ -15,6 +15,8 @@ def createTokenizer(args, data):
 
     if args.trainMode=='EM':
         trainfunc = train.EMTrain
+    elif args.trainMode=='EMMT':
+        trainfunc = train.EMTrainMultiThread
     elif args.trainMode=='viterbi':
         trainfunc = train.viterbiTrain
     elif args.trainMode=='viterbiStepWise':
@@ -75,7 +77,8 @@ def main():
                         choices=['viterbi',
                                  'viterbiStepWise',
                                  'viterbiBatch',
-                                 'EM'],
+                                 'EM',
+                                 'EMMT'],
                         help='method to train multigram language model (default: EM)')
     parser.add_argument('-vs', 
                         '--vocabSize', 
